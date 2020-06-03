@@ -6,12 +6,20 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
+<<<<<<< HEAD
 transformers = {editable = true, path = "."}
+=======
+transformers = {editable = true,path = "."}
+>>>>>>> a15d809b6da3d958cc9c94fd10e4e5b356e1b7a8
 torch = "*"
 scikit-learn = "*"
 torchvision = "*"
 tensorboard = "*"
 bson = "*"
+<<<<<<< HEAD
+=======
+absl-py = "*"
+>>>>>>> a15d809b6da3d958cc9c94fd10e4e5b356e1b7a8
 
 [requires]
 python_version = "3.7"
