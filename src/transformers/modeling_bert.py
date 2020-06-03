@@ -1498,3 +1498,60 @@ class BertForQuestionAnswering(BertPreTrainedModel):
             outputs = (total_loss,) + outputs
 
         return outputs  # (loss), start_logits, end_logits, (hidden_states), (attentions)
+
+@add_start_docstrings(
+    """Bert Model transformer with a sequence classification/regression head on top (a linear layer on top of
+    the pooled output) e.g. for GLUE tasks. """,
+    BERT_START_DOCSTRING,
+)
+class BertForRetrieval(BertPreTrainedModel):
+    def __init__(self, config):
+        super().__init__(config)
+        self.bert = BertModel(config)
+        self.dropout = nn.Dropout(config.hidden_dropout_prob)
+
+        self.init_weights()
+
+    def forward(
+        self,
+        input_ids_a=None,
+        attention_mask_a=None,
+        token_type_ids_a=None,
+        input_ids_b=None,
+        attention_mask_b=None,
+        token_type_ids_b=None,
+        position_ids=None,
+        head_mask=None,
+        inputs_embeds=None,
+    ):
+        outputs_a = self.bert(
+            input_ids_a,
+            attention_mask=attention_mask_a,
+            token_type_ids=token_type_ids_a,
+            position_ids=position_ids,
+            head_mask=head_mask,
+            inputs_embeds=inputs_embeds,
+        )
+        pooled_output_a = outputs_a[1]
+
+        outputs_b = self.bert(
+            input_ids_b,
+            attention_mask=attention_mask_b,
+            token_type_ids=token_type_ids_b,
+            position_ids=position_ids,
+            head_mask=head_mask,
+            inputs_embeds=inputs_embeds,
+        )
+        pooled_output_b = outputs_b[1]
+
+        similarities = torch.matmul(
+            pooled_output_a,
+            torch.transpose(pooled_output_b, 0, 1))
+        batch_sz = similarities.shape[0]
+        labels = torch.eye(batch_sz)
+        class_labels = torch.argmax(labels, dim=0)
+
+        loss_fct = CrossEntropyLoss()
+        loss = loss_fct(similarities, class_labels.view(-1))
+        outputs = (loss,) + (pooled_output_a, pooled_output_b)
+        return outputs
