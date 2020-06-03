@@ -1,0 +1,38 @@
+To ssh into Google cloud
+
+ssh -i ~/.ssh/google_compute_engine uma_roy_us_gmail_com@35.197.13.32
+
+https://docs.python-guide.org/dev/virtualenvs/
+pipenv commands
+
+make sure ssh-agent is running?
+
+sshfs -o IdentityFile=~/.ssh/google_compute_engine uma_roy_us_gmail_com@35.197.13.32:/home/uma_roy_us_gmail_com gcp/
+
+pyenv to manage python versions
+pipenv to manage installed packages
+pipenv shell
+
+Things to install:
+transformers (local) (pipenv install '-e .')
+scikit-learn
+torch, torchvision
+tensorboard
+bson # for loading doordash pickle
+
+
+python examples/text-classification/run_xnli.py \
+  --data_dir="~/Documents/Programming/transformers/data_dir/" \
+  --model_type="bert" \
+  --model_name_or_path="bert-base-multilingual-cased" \
+  --output_dir="/tmp/retrieval-debug/" \
+  --language="en" \
+  --do_train
+
+
+python examples/text-retrieval/run_retrieval.py \
+  --data_dir="/Users/umaroy/Documents/Programming/transformers/data_dir/" \
+  --model_type="bert" \
+  --model_name_or_path="bert-base-multilingual-cased" \
+  --output_dir="/tmp/retrieval-debug/" \
+  --do_train
