@@ -1,6 +1,5 @@
 To ssh into Google cloud
-
-ssh -i ~/.ssh/google_compute_engine uma_roy_us_gmail_com@35.197.13.32
+ssh -i ~/.ssh/google_compute_engine uma_roy_us_gmail_com@35.197.21.166
 
 https://docs.python-guide.org/dev/virtualenvs/
 pipenv commands
@@ -36,3 +35,27 @@ python examples/text-retrieval/run_retrieval.py \
   --model_name_or_path="bert-base-multilingual-cased" \
   --output_dir="/tmp/retrieval-debug/" \
   --do_train
+
+
+scp -i ~/.ssh/google_compute_engine data_dir/cached_train_bert-base-multilingual-cased_128_doordash_cuisine uma_roy_us_gmail_com@35.197.21.166:/home/uma_roy_us_gmail_com/transformers/data_dir
+scp -i ~/.ssh/google_compute_engine data_dir/cached_train_bert-base-multilingual-cased_128_doordash_title uma_roy_us_gmail_com@35.197.21.166:/home/uma_roy_us_gmail_com/transformers/data_dir
+
+cached_train_bert-base-multilingual-cased_128_doordash_title
+doordash_categorized.pkl
+
+On remote machine:
+python examples/text-retrieval/run_retrieval.py \
+  --data_dir="/home/uma_roy_us_gmail_com/transformers/data_dir/" \
+  --model_type="bert" \
+  --model_name_or_path="bert-base-multilingual-cased" \
+  --output_dir="/tmp/retrieval-debug/" \
+  --do_train
+
+  scp -i ~/.ssh/google_compute_engine data_dir/XNLI-1.0 uma_roy_us_gmail_com@35.197.21.166:/home/uma_roy_us_gmail_com/transformers/data_dir
+  scp -i ~/.ssh/google_compute_engine data_dir/ uma_roy_us_gmail_com@35.197.21.166:/home/uma_roy_us_gmail_com/transformers/data_dir
+
+
+  python examples/text-classification/run_glue.py --model_name_or_path=bert-base-multilingual-cased --do_train --task_name=sts-b --data_dir=glue_data/STS-B  --output_dir=tmp/sts-b-test
+
+How to rebase upstream into forked repo
+-- https://medium.com/@topspinj/how-to-git-rebase-into-a-forked-repo-c9f05e821c8a
