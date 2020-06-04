@@ -1553,7 +1553,6 @@ class BertForRetrieval(BertPreTrainedModel):
         class_labels = torch.argmax(labels, dim=0)
         if device:
             class_labels = class_labels.to(device)
-        import pdb; pdb.set_trace()
         loss_fct = CrossEntropyLoss()
         loss = loss_fct(similarities, class_labels.view(-1))
         outputs = (loss,) + (pooled_output_a, pooled_output_b)
