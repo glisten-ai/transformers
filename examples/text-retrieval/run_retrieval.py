@@ -188,9 +188,9 @@ def train(args, train_dataset, model, tokenizer):
                 "input_ids_b": batch[3],
                 "attention_mask_b": batch[4],
                 "token_type_ids_b": batch[5],
+                "device": args.device
             }
-            import pdb; pdb.set_trace()
-            print(batch[0].device)
+            # print(batch[0].device)
             outputs = model(**inputs)
             loss = outputs[0]  # model outputs are always tuple in transformers (see doc)
 
