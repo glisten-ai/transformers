@@ -33,16 +33,12 @@ from tqdm import tqdm, trange
 from transformers import (
     WEIGHTS_NAME,
     AdamW,
+    AutoConfig,
+    # AutoModelForSequenceClassification,
+    # AutoTokenizer,
     BertConfig,
-    BertForSequenceClassification,
-    BertForRetrieval,
     BertTokenizer,
-    DistilBertConfig,
-    DistilBertForSequenceClassification,
-    DistilBertTokenizer,
-    XLMConfig,
-    XLMForSequenceClassification,
-    XLMTokenizer,
+    BertForRetrieval,
     get_linear_schedule_with_warmup,
 )
 # from transformers import glue_convert_examples_to_features as convert_examples_to_features
@@ -60,16 +56,16 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-ALL_MODELS = sum(
-    (tuple(conf.pretrained_config_archive_map.keys()) for conf in (BertConfig, DistilBertConfig, XLMConfig)), ()
-)
-
-MODEL_CLASSES = {
-    "bert": (BertConfig, BertForRetrieval, BertTokenizer),
-    # We're not supporting XLM and distilbert for now.
-    # "xlm": (XLMConfig, XLMForSequenceClassification, XLMTokenizer),
-    # "distilbert": (DistilBertConfig, DistilBertForSequenceClassification, DistilBertTokenizer),
-}
+# ALL_MODELS = sum(
+#     (tuple(conf.pretrained_config_archive_map.keys()) for conf in (BertConfig, DistilBertConfig, XLMConfig)), ()
+# )
+#
+# MODEL_CLASSES = {
+#     "bert": (BertConfig, BertForRetrieval, BertTokenizer),
+#     # We're not supporting XLM and distilbert for now.
+#     # "xlm": (XLMConfig, XLMForSequenceClassification, XLMTokenizer),
+#     # "distilbert": (DistilBertConfig, DistilBertForSequenceClassification, DistilBertTokenizer),
+# }
 
 
 def set_seed(args):
@@ -435,19 +431,19 @@ def main():
         required=True,
         help="The input data dir. Should contain the .tsv files (or other data files) for the task.",
     )
-    parser.add_argument(
-        "--model_type",
-        default=None,
-        type=str,
-        required=True,
-        help="Model type selected in the list: " + ", ".join(MODEL_CLASSES.keys()),
-    )
+    # parser.add_argument(
+    #     "--model_type",
+    #     default=None,
+    #     type=str,
+    #     required=True,
+    #     help="Model type selected in the list: " + ", ".join(MODEL_CLASSES.keys()),
+    # )
     parser.add_argument(
         "--model_name_or_path",
         default=None,
         type=str,
         required=True,
-        help="Path to pre-trained model or shortcut name selected in the list: " + ", ".join(ALL_MODELS),
+        help="Path to pre-trained model or shortcut name selected in the list"
     )
     parser.add_argument(
         "--output_dir",
@@ -469,7 +465,7 @@ def main():
     )
     parser.add_argument(
         "--cache_dir",
-        default="",
+        default=None,
         type=str,
         help="Where do you want to store the pre-trained models downloaded from s3",
     )
@@ -610,24 +606,21 @@ def main():
     if args.local_rank not in [-1, 0]:
         torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
 
-    args.model_type = args.model_type.lower()
-    config_class, model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
-    config = config_class.from_pretrained(
+    config = AutoConfig.from_pretrained(
         args.config_name if args.config_name else args.model_name_or_path,
-        # num_labels=num_labels,
-        # finetuning_task=args.task_name,
-        cache_dir=args.cache_dir if args.cache_dir else None,
+        cache_dir=args.cache_dir,
     )
-    tokenizer = tokenizer_class.from_pretrained(
+    args.model_type = "bert"
+    tokenizer = BertTokenizer.from_pretrained(
         args.tokenizer_name if args.tokenizer_name else args.model_name_or_path,
         do_lower_case=args.do_lower_case,
-        cache_dir=args.cache_dir if args.cache_dir else None,
+        cache_dir=args.cache_dir,
     )
-    model = model_class.from_pretrained(
+    model = BertForRetrieval.from_pretrained(
         args.model_name_or_path,
         from_tf=bool(".ckpt" in args.model_name_or_path),
         config=config,
-        cache_dir=args.cache_dir if args.cache_dir else None,
+        cache_dir=args.cache_dir,
     )
 
     if args.local_rank == 0:
