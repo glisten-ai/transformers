@@ -218,6 +218,7 @@ def train(args, train_dataset, model, tokenizer):
                 global_step += 1
 
                 if args.local_rank in [-1, 0] and args.logging_steps > 0 and global_step % args.logging_steps == 0:
+                    import pdb; pdb.set_trace()
                     # Log metrics
                     if (
                         args.local_rank == -1 and args.evaluate_during_training

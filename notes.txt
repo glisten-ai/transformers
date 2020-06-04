@@ -22,7 +22,6 @@ bson # for loading doordash pickle
 
 python examples/text-classification/run_xnli.py \
   --data_dir="~/Documents/Programming/transformers/data_dir/" \
-  --model_type="bert" \
   --model_name_or_path="bert-base-multilingual-cased" \
   --output_dir="/tmp/retrieval-debug/" \
   --language="en" \
@@ -31,9 +30,8 @@ python examples/text-classification/run_xnli.py \
 
 python examples/text-retrieval/run_retrieval.py \
   --data_dir="/Users/umaroy/Documents/Programming/transformers/data_dir/" \
-  --model_type="bert" \
   --model_name_or_path="bert-base-multilingual-cased" \
-  --output_dir="/tmp/retrieval-debug/" \
+  --output_dir="/tmp/retrieval-debug-2/" \
   --do_train
 
 
@@ -46,9 +44,8 @@ doordash_categorized.pkl
 On remote machine:
 python examples/text-retrieval/run_retrieval.py \
   --data_dir="/home/uma_roy_us_gmail_com/transformers/data_dir/" \
-  --model_type="bert" \
   --model_name_or_path="bert-base-multilingual-cased" \
-  --output_dir="/tmp/retrieval-debug/" \
+  --output_dir="/tmp/retrieval-debug-2/" \
   --do_train
 
   scp -i ~/.ssh/google_compute_engine data_dir/XNLI-1.0 uma_roy_us_gmail_com@35.197.21.166:/home/uma_roy_us_gmail_com/transformers/data_dir
@@ -59,3 +56,26 @@ python examples/text-retrieval/run_retrieval.py \
 
 How to rebase upstream into forked repo
 -- https://medium.com/@topspinj/how-to-git-rebase-into-a-forked-repo-c9f05e821c8a
+
+ssh -i ~/.ssh/google_compute_engine -R 6006:localhost:6006 uma_roy_us_gmail_com@35.197.21.166
+
+For jupyter notebook port forwarding
+gcloud compute ssh nvidia-gpu-cloud-pytorch-image-1-vm \
+    --project vast-alcove-231918 \
+    --zone us-west1-b \
+    -- -L 2222:localhost:8888
+
+
+gcloud compute ssh nvidia-gpu-cloud-pytorch-image-1-vm \
+    --project vast-alcove-231918 \
+    --zone us-west1-b \
+    -- -L 2222:localhost:6006
+
+
+
+To install pyenv and pipenv:
+https://github.com/pyenv/pyenv/wiki/Common-build-problems
+pyenv install 3.7.7
+switch to relevant python version into pyenv,
+then pip install pipenv
+Then reload shell and pipenv should work...
