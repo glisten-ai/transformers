@@ -34,9 +34,21 @@ python examples/text-retrieval/run_retrieval.py \
   --output_dir="/tmp/retrieval-debug-2/" \
   --do_train
 
+python examples/text-retrieval/run_retrieval.py \
+--data_dir="/Users/umaroy/Documents/Programming/transformers/data_dir/" \
+--model_name_or_path="bert-base-multilingual-cased" \
+--output_dir="/tmp/retrieval-debug/" \
+--do_eval
+
+python examples/text-retrieval/run_retrieval.py \
+--data_dir="/Users/umaroy/Documents/Programming/transformers/data_dir/" \
+--model_name_or_path="bert-base-multilingual-cased" \
+--run_name="test_run" \
+--do_eval
 
 scp -i ~/.ssh/google_compute_engine data_dir/cached_train_bert-base-multilingual-cased_128_doordash_cuisine uma_roy_us_gmail_com@35.197.21.166:/home/uma_roy_us_gmail_com/transformers/data_dir
 scp -i ~/.ssh/google_compute_engine data_dir/cached_train_bert-base-multilingual-cased_128_doordash_title uma_roy_us_gmail_com@35.197.21.166:/home/uma_roy_us_gmail_com/transformers/data_dir
+scp -i ~/.ssh/google_compute_engine data_dir/doordash_categorized.pkl uma_roy_us_gmail_com@35.197.21.166:/home/uma_roy_us_gmail_com/transformers/data_dir
 
 cached_train_bert-base-multilingual-cased_128_doordash_title
 doordash_categorized.pkl
@@ -45,14 +57,18 @@ On remote machine:
 python examples/text-retrieval/run_retrieval.py \
   --data_dir="/home/uma_roy_us_gmail_com/transformers/data_dir/" \
   --model_name_or_path="bert-base-multilingual-cased" \
-  --output_dir="/tmp/retrieval-debug-2/" \
-  --do_train
+  --run_name="batch-32_max-seq-len-55_noother" \
+  --max_seq_length=55 \
+  --per_gpu_train_batch_size=32 \
+  --do_train \
+  --logging_steps=100 \
+  --overwrite_cache
 
-  scp -i ~/.ssh/google_compute_engine data_dir/XNLI-1.0 uma_roy_us_gmail_com@35.197.21.166:/home/uma_roy_us_gmail_com/transformers/data_dir
-  scp -i ~/.ssh/google_compute_engine data_dir/ uma_roy_us_gmail_com@35.197.21.166:/home/uma_roy_us_gmail_com/transformers/data_dir
+scp -i ~/.ssh/google_compute_engine data_dir/XNLI-1.0 uma_roy_us_gmail_com@35.197.21.166:/home/uma_roy_us_gmail_com/transformers/data_dir
+scp -i ~/.ssh/google_compute_engine data_dir/ uma_roy_us_gmail_com@35.197.21.166:/home/uma_roy_us_gmail_com/transformers/data_dir
 
 
-  python examples/text-classification/run_glue.py --model_name_or_path=bert-base-multilingual-cased --do_train --task_name=sts-b --data_dir=glue_data/STS-B  --output_dir=tmp/sts-b-test
+python examples/text-classification/run_glue.py --model_name_or_path=bert-base-multilingual-cased --do_train --task_name=sts-b --data_dir=glue_data/STS-B  --output_dir=tmp/sts-b-test
 
 How to rebase upstream into forked repo
 -- https://medium.com/@topspinj/how-to-git-rebase-into-a-forked-repo-c9f05e821c8a
@@ -71,7 +87,7 @@ gcloud compute ssh nvidia-gpu-cloud-pytorch-image-1-vm \
     --zone us-west1-b \
     -- -L 2222:localhost:6006
 
-
+ssh glisten (~/.ssh/config)
 
 To install pyenv and pipenv:
 https://github.com/pyenv/pyenv/wiki/Common-build-problems
@@ -79,3 +95,52 @@ pyenv install 3.7.7
 switch to relevant python version into pyenv,
 then pip install pipenv
 Then reload shell and pipenv should work...
+
+
+6/5/2020:
+Run classification pipeline
+python examples/text-classification/run_doordash.py \
+  --data_dir="/home/uma_roy_us_gmail_com/transformers/data_dir/" \
+  --model_name_or_path="bert-base-multilingual-cased" \
+  --run_name="classification_test" \
+  --max_seq_length=55 \
+  --per_gpu_train_batch_size=32 \
+  --do_train \
+  --logging_steps=5
+
+
+python examples/text-classification/run_doordash.py \
+  --data_dir="/home/uma_roy_us_gmail_com/transformers/data_dir/" \
+  --model_name_or_path="xlm-roberta-large" \
+  --run_name="classification_32_55_xlm_roberta" \
+  --max_seq_length=55 \
+  --per_gpu_train_batch_size=32 \
+  --do_train \
+  --logging_steps=100
+
+For classification:
+--train on all labels and note best performance: seems like ~50%
+
+--Get eval mode to dump all encodings ... what size? 
+--look at PCA or tSNE and examine what clusters look like 
+--suspect there will be problem clusters that overlap that are confusing classifier
+--implement a per-class accuracy to get sense of how individual classes are doing
+--weight class by class-imblanace (inverse)?
+--Also can plug in different models (Roberta, etc.)
+
+2-tiered classifier:
+--**train classifier to train "other" vs. desired categories
+--**then another classifier to distinguish between desired categories
+^ look at output of the above manually because that is what they care about...
+
+Co-opting evaluation to dump the encodings:
+python examples/text-classification/run_doordash.py \
+  --data_dir="/home/uma_roy_us_gmail_com/transformers/data_dir/" \
+  --model_name_or_path="bert-base-multilingual-cased" \
+  --run_name="classification_test/checkpoint-4500" \
+  --max_seq_length=55 \
+  --do_eval \
+  --per_gpu_eval_batch_size=128
+
+
+  scp -i ~/.ssh/google_compute_engine doordash_test.csv uma_roy_us_gmail_com@35.197.21.166:/home/uma_roy_us_gmail_com/transformers/data_dir

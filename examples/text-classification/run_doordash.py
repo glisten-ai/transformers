@@ -13,8 +13,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" Finetuning multi-lingual models for retrieval.
-    Adapted from `examples/text-classification/run_xnli.py`"""
+""" Finetuning multi-lingual models on XNLI (e.g. Bert, DistilBERT, XLM).
+    Adapted from `examples/text-classification/run_glue.py`"""
 
 
 import argparse
@@ -34,19 +34,15 @@ from transformers import (
     WEIGHTS_NAME,
     AdamW,
     AutoConfig,
-    # AutoModelForSequenceClassification,
-    # AutoTokenizer,
-    BertConfig,
-    BertTokenizer,
-    BertForRetrieval,
+    AutoModelForSequenceClassification,
+    AutoTokenizer,
     get_linear_schedule_with_warmup,
 )
-# from transformers import glue_convert_examples_to_features as convert_examples_to_features
-# from transformers import xnli_compute_metrics as compute_metrics
-# from transformers import xnli_output_modes as output_modes
-# from transformers import xnli_processors as processors
-from transformers import InputExample, InputFeatures
-
+from transformers import glue_convert_examples_to_features as convert_examples_to_features
+from transformers import xnli_compute_metrics as compute_metrics
+from transformers import xnli_output_modes as output_modes
+from transformers import xnli_processors as processors
+from transformers import InputExample
 
 try:
     from torch.utils.tensorboard import SummaryWriter
@@ -55,17 +51,6 @@ except ImportError:
 
 
 logger = logging.getLogger(__name__)
-
-# ALL_MODELS = sum(
-#     (tuple(conf.pretrained_config_archive_map.keys()) for conf in (BertConfig, DistilBertConfig, XLMConfig)), ()
-# )
-#
-# MODEL_CLASSES = {
-#     "bert": (BertConfig, BertForRetrieval, BertTokenizer),
-#     # We're not supporting XLM and distilbert for now.
-#     # "xlm": (XLMConfig, XLMForSequenceClassification, XLMTokenizer),
-#     # "distilbert": (DistilBertConfig, DistilBertForSequenceClassification, DistilBertTokenizer),
-# }
 
 
 def set_seed(args):
@@ -175,25 +160,13 @@ def train(args, train_dataset, model, tokenizer):
 
             model.train()
             batch = tuple(t.to(args.device) for t in batch)
-            # inputs = {"input_ids_a": batch[0], "attention_mask": batch[1], "labels": batch[3]}
-            # if args.model_type != "distilbert":
-            #     inputs["token_type_ids"] = (
-            #         batch[2] if args.model_type in ["bert"] else None
-            #     )  # XLM and DistilBERT don't use segment_ids
-            assert args.model_type == "bert"  # Currently only supported model.
-            inputs = {
-                "input_ids_a": batch[0],
-                "attention_mask_a": batch[1],
-                "token_type_ids_a": batch[2],
-                "input_ids_b": batch[3],
-                "attention_mask_b": batch[4],
-                "token_type_ids_b": batch[5],
-                "device": args.device
-            }
-            # print(batch[0].device)
+            inputs = {"input_ids": batch[0], "attention_mask": batch[1], "labels": batch[3]}
+            if args.model_type != "distilbert":
+                inputs["token_type_ids"] = (
+                    batch[2] if args.model_type in ["bert"] else None
+                )  # XLM and DistilBERT don't use segment_ids
             outputs = model(**inputs)
             loss = outputs[0]  # model outputs are always tuple in transformers (see doc)
-            embeddings_a, embeddings_b = outputs[1], outputs[2]
 
             if args.n_gpu > 1:
                 loss = loss.mean()  # mean() to average on multi-gpu parallel training
@@ -226,14 +199,11 @@ def train(args, train_dataset, model, tokenizer):
                         results = evaluate(args, model, tokenizer)
                         for key, value in results.items():
                             tb_writer.add_scalar("eval_{}".format(key), value, global_step)
-                    # Evaluation of top-1 accuracy while training
-                    emb_a = embeddings_a.detach().cpu().numpy()
-                    emb_b = embeddings_b.detach().cpu().numpy()
-                    sims = np.matmul(emb_a, emb_b.T)
-                    top_1 = np.argmax(sims, axis=1)
-                    true_labels = np.arange(len(sims))
-                    correct = (top_1 == true_labels).sum()
-                    accuracy = correct / len(sims)
+                    logits = outputs[1]
+                    preds = logits.detach().cpu().numpy()
+                    out_label_ids = inputs["labels"].detach().cpu().numpy()
+                    preds = np.argmax(preds, axis=1)
+                    accuracy = (preds == out_label_ids).sum()/len(preds)
                     tb_writer.add_scalar("accuracy", accuracy, global_step)
 
                     tb_writer.add_scalar("lr", scheduler.get_lr()[0], global_step)
@@ -299,7 +269,10 @@ def evaluate(args, model, tokenizer, prefix=""):
         nb_eval_steps = 0
         preds = None
         out_label_ids = None
+        encodings = None
+        batch_num = 0
         for batch in tqdm(eval_dataloader, desc="Evaluating"):
+            batch_num += 1
             model.eval()
             batch = tuple(t.to(args.device) for t in batch)
 
@@ -310,38 +283,49 @@ def evaluate(args, model, tokenizer, prefix=""):
                         batch[2] if args.model_type in ["bert"] else None
                     )  # XLM and DistilBERT don't use segment_ids
                 outputs = model(**inputs)
-                tmp_eval_loss, logits = outputs[:2]
+                tmp_eval_loss, logits, pooled_output = outputs[:3]
 
                 eval_loss += tmp_eval_loss.mean().item()
             nb_eval_steps += 1
             if preds is None:
                 preds = logits.detach().cpu().numpy()
                 out_label_ids = inputs["labels"].detach().cpu().numpy()
+                encodings = pooled_output.detach().cpu().numpy()
             else:
                 preds = np.append(preds, logits.detach().cpu().numpy(), axis=0)
                 out_label_ids = np.append(out_label_ids, inputs["labels"].detach().cpu().numpy(), axis=0)
+                encodings = np.append(encodings, pooled_output.detach().cpu().numpy(), axis=0)
 
+#        print(preds.shape)
+#        print(out_label_ids.shape)
+#        print(encodings.shape)
+        # Save in the output dir, where model is being loaded from? 
+        torch.save(preds, os.path.join(args.output_dir, 'model_preds'))
+        torch.save(encodings, os.path.join(args.output_dir, 'model_encodings'))
+        torch.save(out_label_ids, os.path.join(args.output_dir, 'labels'))
+
+        # TODO(umaroy) ...save encodings, labels and preds (logits) with numpy array save
         eval_loss = eval_loss / nb_eval_steps
         if args.output_mode == "classification":
             preds = np.argmax(preds, axis=1)
         else:
             raise ValueError("No other `output_mode` for XNLI.")
         # result = compute_metrics(eval_task, preds, out_label_ids)
-        results.update(result)
+        # results.update(result)
 
-        output_eval_file = os.path.join(eval_output_dir, prefix, "eval_results.txt")
-        with open(output_eval_file, "w") as writer:
-            logger.info("***** Eval results {} *****".format(prefix))
-            for key in sorted(result.keys()):
-                logger.info("  %s = %s", key, str(result[key]))
-                writer.write("%s = %s\n" % (key, str(result[key])))
+        # output_eval_file = os.path.join(eval_output_dir, prefix, "eval_results.txt")
+        # with open(output_eval_file, "w") as writer:
+        #     logger.info("***** Eval results {} *****".format(prefix))
+        #     for key in sorted(result.keys()):
+        #         logger.info("  %s = %s", key, str(result[key]))
+        #         writer.write("%s = %s\n" % (key, str(result[key])))
 
     return results
 
 
 class DoorDashProcessor():
-    def __init__(self):
-        pass
+    def __init__(self, excluded_labels):
+        self.excluded_labels = excluded_labels
 
     def get_train_examples(self, data_dir):
         """See base class."""
@@ -349,86 +333,109 @@ class DoorDashProcessor():
         print(datafile)
         with open(datafile, 'rb') as f:
             json = pickle.load(f)
-        examples_title = []
-        examples_cuisine = []
+        examples = []
         for entry in json:
             guid = entry['key']
             title = entry['title']
             label = entry['labels']['category']
-            if label == 'other':
+            if label in self.excluded_labels:
                 continue
-            examples_title.append(InputExample(guid=guid, text_a=title))
-            examples_cuisine.append(InputExample(guid=guid, text_a=label))
-        return examples_title, examples_cuisine
+            examples.append(
+                InputExample(guid=guid, text_a=title, label=label)
+            )
+        return examples
 
+    def get_test_examples(self, data_dir):
+        return self.get_train_examples(data_dir)
 
-def retrieval_examples_to_features(examples, tokenizer, max_length):
-    batch_encoding = tokenizer.batch_encode_plus(
-        [(example.text_a, example.text_b) for example in examples],
-        max_length=max_length, pad_to_max_length=True,
-    )
-
-    features = []
-    for i in range(len(examples)):
-        inputs = {k: batch_encoding[k][i] for k in batch_encoding}
-
-        feature = InputFeatures(**inputs)
-        features.append(feature)
-
-    for i, example in enumerate(examples[:5]):
-        logger.info("*** Example ***")
-        logger.info("guid: %s" % (example.guid))
-        logger.info("features: %s" % features[i])
-
-    return features
+    def get_labels(self):
+        labels = [
+            'african',
+            'american',
+            'asian',
+            'belgian',
+            'british',
+            'burmese',
+            'caribbean',
+            'chinese',
+            'eastern_european',
+            'ethiopian',
+            'european',
+            'filipino',
+            'french',
+            'german',
+            'greek',
+            'indian',
+            'irish',
+            'italian',
+            'japanese',
+            'korean',
+            'latin_american',
+            'mediterranean',
+            'mexican',
+            'middle_eastern',
+            'other',
+            'south_asian',
+            'southern',
+            'spanish',
+            'thai',
+            'vietnamese'
+        ]
+        final_labels = [l for l in labels if l not in self.excluded_labels]
+        return final_labels
 
 
 def load_and_cache_examples(args, task, tokenizer, evaluate=False):
     if args.local_rank not in [-1, 0] and not evaluate:
         torch.distributed.barrier()  # Make sure only the first process in distributed training process the dataset, and the others will use the cache
 
-    processor = DoorDashProcessor()
+    # processor = processors[task](language=args.language, train_language=args.train_language)
+    processor = DoorDashProcessor(excluded_labels=[])
+    output_mode = "classification"
+    # output_mode = output_modes[task]
     # Load data features from cache or dataset file
     cached_features_file = os.path.join(
         args.data_dir,
-        "cached_{}_{}_{}_{}_{{}}".format(
+        "cached_{}_{}_{}_{}".format(
             "test" if evaluate else "train",
             list(filter(None, args.model_name_or_path.split("/"))).pop(),
             str(args.max_seq_length),
-            str(task)),
+            str(task),
+        ),
     )
-    if os.path.exists(cached_features_file.format('title')) and not args.overwrite_cache:
-        logger.info("Loading features from cached file with pattern %s", cached_features_file)
-        features_title = torch.load(cached_features_file.format('title'))
-        features_cuisine = torch.load(cached_features_file.format('cuisine'))
+    if os.path.exists(cached_features_file) and not args.overwrite_cache:
+        logger.info("Loading features from cached file %s", cached_features_file)
+        features = torch.load(cached_features_file)
     else:
         logger.info("Creating features from dataset file at %s", args.data_dir)
-        examples_title, examples_cuisine = (
+        label_list = processor.get_labels()
+        examples = (
             processor.get_test_examples(args.data_dir) if evaluate else processor.get_train_examples(args.data_dir)
         )
-        features_title = retrieval_examples_to_features(
-            examples_title, tokenizer, max_length=args.max_seq_length
-        )
-        features_cuisine = retrieval_examples_to_features(
-            examples_cuisine, tokenizer, max_length=args.max_seq_length
+        features = convert_examples_to_features(
+            examples, tokenizer, max_length=args.max_seq_length, label_list=label_list, output_mode=output_mode,
         )
         if args.local_rank in [-1, 0]:
-            logger.info("Saving features into cached file with pattern %s", cached_features_file)
-            torch.save(features_title, cached_features_file.format('title'))
-            torch.save(features_cuisine, cached_features_file.format('cuisine'))
+            logger.info("Saving features into cached file %s", cached_features_file)
+            torch.save(features, cached_features_file)
 
     if args.local_rank == 0 and not evaluate:
         torch.distributed.barrier()  # Make sure only the first process in distributed training process the dataset, and the others will use the cache
 
     # Convert to Tensors and build dataset
-    tensor_dataset_list = []
-    for features in [features_title, features_cuisine]:
-        all_input_ids = torch.tensor([f.input_ids for f in features], dtype=torch.long)
-        all_attention_mask = torch.tensor([f.attention_mask for f in features], dtype=torch.long)
+    all_input_ids = torch.tensor([f.input_ids for f in features], dtype=torch.long)
+    all_attention_mask = torch.tensor([f.attention_mask for f in features], dtype=torch.long)
+    if features[0].token_type_ids is not None:
         all_token_type_ids = torch.tensor([f.token_type_ids for f in features], dtype=torch.long)
-        tensor_dataset_list.extend([all_input_ids, all_attention_mask, all_token_type_ids])
+    else:
+        all_token_type_ids = torch.tensor([-1. for f in features], dtype=torch.long)
+        # Pass a dummy value
+    if output_mode == "classification":
+        all_labels = torch.tensor([f.label for f in features], dtype=torch.long)
+    else:
+        raise ValueError("No other `output_mode` for XNLI.")
 
-    dataset = TensorDataset(*tensor_dataset_list)
+    dataset = TensorDataset(all_input_ids, all_attention_mask, all_token_type_ids, all_labels)
     return dataset
 
 
@@ -443,19 +450,12 @@ def main():
         required=True,
         help="The input data dir. Should contain the .tsv files (or other data files) for the task.",
     )
-    # parser.add_argument(
-    #     "--model_type",
-    #     default=None,
-    #     type=str,
-    #     required=True,
-    #     help="Model type selected in the list: " + ", ".join(MODEL_CLASSES.keys()),
-    # )
     parser.add_argument(
         "--model_name_or_path",
         default=None,
         type=str,
         required=True,
-        help="Path to pre-trained model or shortcut name selected in the list"
+        help="Path to pretrained model or model identifier from huggingface.co/models",
     )
     # parser.add_argument(
     #     "--output_dir",
@@ -471,7 +471,6 @@ def main():
         required=True,
         help="The name of the run."
     )
-
     # Other parameters
     parser.add_argument(
         "--config_name", default="", type=str, help="Pretrained config name or path if not the same as model_name"
@@ -498,7 +497,7 @@ def main():
     parser.add_argument("--do_train", action="store_true", help="Whether to run training.")
     parser.add_argument("--do_eval", action="store_true", help="Whether to run eval on the test set.")
     parser.add_argument(
-        "--evaluate_during_training", action="store_true", help="Run evaluation during training at each logging step."
+        "--evaluate_during_training", action="store_true", help="Rul evaluation during training at each logging step."
     )
     parser.add_argument(
         "--do_lower_case", action="store_true", help="Set this flag if you are using an uncased model."
@@ -564,7 +563,6 @@ def main():
 
     args.output_dir = os.path.join(os.getcwd(), 'output_dirs', args.run_name)
     args.log_dir = os.path.join(os.getcwd(), 'log_dirs', args.run_name)
-
     if (
         os.path.exists(args.output_dir)
         and os.listdir(args.output_dir)
@@ -616,13 +614,14 @@ def main():
     set_seed(args)
 
     # Prepare XNLI task
-    # args.task_name = "xnli"
+    args.task_name = "doordash_classification"
     # if args.task_name not in processors:
     #     raise ValueError("Task not found: %s" % (args.task_name))
+    processor = DoorDashProcessor(excluded_labels=[])
     # processor = processors[args.task_name](language=args.language, train_language=args.train_language)
-    # args.output_mode = output_modes[args.task_name]
-    # label_list = processor.get_labels()
-    # num_labels = len(label_list)
+    args.output_mode = "classification" # output_modes[args.task_name]
+    label_list = processor.get_labels()
+    num_labels = len(label_list)
 
     # Load pretrained model and tokenizer
     if args.local_rank not in [-1, 0]:
@@ -630,15 +629,17 @@ def main():
 
     config = AutoConfig.from_pretrained(
         args.config_name if args.config_name else args.model_name_or_path,
+        num_labels=num_labels,
+        finetuning_task=args.task_name,
         cache_dir=args.cache_dir,
     )
-    args.model_type = "bert"
-    tokenizer = BertTokenizer.from_pretrained(
+    args.model_type = config.model_type
+    tokenizer = AutoTokenizer.from_pretrained(
         args.tokenizer_name if args.tokenizer_name else args.model_name_or_path,
         do_lower_case=args.do_lower_case,
         cache_dir=args.cache_dir,
     )
-    model = BertForRetrieval.from_pretrained(
+    model = AutoModelForSequenceClassification.from_pretrained(
         args.model_name_or_path,
         from_tf=bool(".ckpt" in args.model_name_or_path),
         config=config,
@@ -652,7 +653,6 @@ def main():
 
     logger.info("Training/evaluation parameters %s", args)
 
-    args.task_name = "doordash"
     # Training
     if args.do_train:
         train_dataset = load_and_cache_examples(args, args.task_name, tokenizer, evaluate=False)
@@ -678,14 +678,13 @@ def main():
         torch.save(args, os.path.join(args.output_dir, "training_args.bin"))
 
         # Load a trained model and vocabulary that you have fine-tuned
-        model = model_class.from_pretrained(args.output_dir)
-        tokenizer = tokenizer_class.from_pretrained(args.output_dir)
+        model = AutoModelForSequenceClassification.from_pretrained(args.output_dir)
+        tokenizer = AutoTokenizer.from_pretrained(args.output_dir)
         model.to(args.device)
 
     # Evaluation
     results = {}
     if args.do_eval and args.local_rank in [-1, 0]:
-        tokenizer = tokenizer_class.from_pretrained(args.output_dir, do_lower_case=args.do_lower_case)
         checkpoints = [args.output_dir]
         if args.eval_all_checkpoints:
             checkpoints = list(
@@ -697,7 +696,7 @@ def main():
             global_step = checkpoint.split("-")[-1] if len(checkpoints) > 1 else ""
             prefix = checkpoint.split("/")[-1] if checkpoint.find("checkpoint") != -1 else ""
 
-            model = model_class.from_pretrained(checkpoint)
+            model = AutoModelForSequenceClassification.from_pretrained(checkpoint)
             model.to(args.device)
             result = evaluate(args, model, tokenizer, prefix=prefix)
             result = dict((k + "_{}".format(global_step), v) for k, v in result.items())

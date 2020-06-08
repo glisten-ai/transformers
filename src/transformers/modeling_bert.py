@@ -1170,7 +1170,7 @@ class BertForSequenceClassification(BertPreTrainedModel):
         pooled_output = self.dropout(pooled_output)
         logits = self.classifier(pooled_output)
 
-        outputs = (logits,) + outputs[2:]  # add hidden states and attention if they are here
+        outputs = (logits,) + (pooled_output,) + outputs[2:]  # add hidden states and attention if they are here
 
         if labels is not None:
             if self.num_labels == 1:
@@ -1182,7 +1182,7 @@ class BertForSequenceClassification(BertPreTrainedModel):
                 loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
             outputs = (loss,) + outputs
 
-        return outputs  # (loss), logits, (hidden_states), (attentions)
+        return outputs  # (loss), logits, pooled_output, (hidden_states), (attentions)
 
 
 @add_start_docstrings(
