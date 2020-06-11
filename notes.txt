@@ -144,3 +144,84 @@ python examples/text-classification/run_doordash.py \
 
 
   scp -i ~/.ssh/google_compute_engine doordash_test.csv uma_roy_us_gmail_com@35.197.21.166:/home/uma_roy_us_gmail_com/transformers/data_dir
+
+
+Setting up use of this repo:
+
+* Install pyenv
+* Modify bashrc to have shims
+* Make sure pyenv works
+* Install 3.7.7
+* Install pipenv (while you are in the version of pyenv)
+* Clone transformers repo (this repo)
+* pipenv install--should install transformers environment based on Pipfile in git
+* pipenv shell (gives you (transformers) prompt in your command line)
+* https://anbasile.github.io/posts/2017-06-25-jupyter-venv/ (look at tl;dr)
+* launch jupyter notebook from the environment in the transformers directory
+* Go to localhost:8888 and you should see the jupyter instance running
+
+cat ~/.ssh/config
+
+Host glisten
+	HostName 35.197.21.166
+	User uma_roy_us_gmail_com
+	IdentityFile ~/.ssh/google_compute_engine
+	LocalForward 8888 localhost:8888
+	LocalForward 8889 localhost:8889
+	LocalForward 6006 localhost:6006
+	LocalForward 6007 localhost:6007
+
+
+TODO 5/8:
+Cuisine type:
+--run current classification model with just given labels,
+ then use model to label asian, etc. to get cleaned data, 
+ then re-train model with silver data (lol self-distillation)
+ --train model with description (and maybe section)
+
+Dish type:
+--clean data by 'section' to reflect pizza, etc. to turn into classification problem 
+("other" is a big problem)
+--train dish type classification model on cleaned data and test it!
+
+Devops:
+Clean up output dir and log dir folder at some point
+DONE: add wandb tracking
+
+python examples/text-classification/run_doordash.py \
+  --data_dir="/home/transformers-public/data_dir/" \
+  --model_name_or_path="bert-base-multilingual-cased" \
+  --run_name="wandb_test" \
+  --max_seq_length=55 \
+  --per_gpu_train_batch_size=32 \
+  --do_train \
+  --logging_steps=100 \
+  --writing_dir="/home/transformers-public" \
+  --max_steps=100
+
+preprocessing
+doordash text --> (title, description) pairs
+--filtered by relevant cuisine types
+--concat all together
+
+
+Simplest MVP:
+doordash text --> (title, description)
+feed through net                                                                                                                                                                                                                                                                                                                                                                                         
+
+
+
+List[InputFeatures]
+f.input_ids, t.token_type_ids, etc.
+
+
+python examples/text-classification/run_doordash.py \
+  --data_dir="/home/transformers-public/data_dir/" \
+  --model_name_or_path="bert-base-multilingual-cased" \
+  --run_name="test_new_cleaned_loader" \
+  --max_seq_length=64 \
+  --per_gpu_train_batch_size=32 \
+  --do_train \
+  --logging_steps=100 \
+  --writing_dir="/home/transformers-public" \
+  --max_steps=100000

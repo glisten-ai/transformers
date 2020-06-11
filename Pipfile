@@ -16,6 +16,7 @@ absl-py = "*"
 jupyter = "*"
 matplotlib = "*"
 pandas = "*"
+wandb = "*"
 
 [requires]
 python_version = "3.7"
