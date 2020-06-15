@@ -16,6 +16,7 @@ absl-py = "*"
 jupyter = "*"
 matplotlib = "*"
 pandas = "*"
+zipp = {editable = true, path = "."}
 
 [requires]
 python_version = "3.7"
