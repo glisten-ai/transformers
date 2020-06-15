@@ -18,6 +18,7 @@
 
 
 import argparse
+from collections import OrderedDict
 import glob
 import logging
 import os
@@ -44,10 +45,15 @@ from transformers import xnli_output_modes as output_modes
 from transformers import xnli_processors as processors
 from transformers import InputExample
 
+from doordash_preprocessing import MultiStreamDataLoader, IterableTitles
+
 try:
     from torch.utils.tensorboard import SummaryWriter
 except ImportError:
     from tensorboardX import SummaryWriter
+
+import wandb
+wandb.init(project="glisten-doordash")
 
 
 logger = logging.getLogger(__name__)
@@ -68,7 +74,9 @@ def train(args, train_dataset, model, tokenizer):
 
     args.train_batch_size = args.per_gpu_train_batch_size * max(1, args.n_gpu)
     train_sampler = RandomSampler(train_dataset) if args.local_rank == -1 else DistributedSampler(train_dataset)
-    train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=args.train_batch_size)
+    # train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=args.train_batch_size)
+    train_dataset.batch_size = args.train_batch_size
+    train_dataloader = train_dataset
 
     if args.max_steps > 0:
         t_total = args.max_steps
@@ -208,6 +216,12 @@ def train(args, train_dataset, model, tokenizer):
 
                     tb_writer.add_scalar("lr", scheduler.get_lr()[0], global_step)
                     tb_writer.add_scalar("loss", (tr_loss - logging_loss) / args.logging_steps, global_step)
+                    # wandb logging
+                    wandb.log({
+                        "lr": scheduler.get_lr()[0],
+                        "loss": (tr_loss - logging_loss) / args.logging_steps,
+                        "accuracy": accuracy,
+                    })
                     logging_loss = tr_loss
 
                 if args.local_rank in [-1, 0] and args.save_steps > 0 and global_step % args.save_steps == 0:
@@ -323,120 +337,28 @@ def evaluate(args, model, tokenizer, prefix=""):
     return results
 
 
-class DoorDashProcessor():
-    def __init__(self, excluded_labels):
-        self.excluded_labels = excluded_labels
+def get_train_dataset():
+    rootdir = '/home/doordash-by-category/cleaned-tokenized/bert-base-multilingual-cased/'
+    with open(os.path.join(rootdir, 'lens.pkl'), 'rb') as f:
+        len_dict = pickle.load(f)
+    targets_to_categories = {
+        # Label to list of filenames corresponding to that label
+        'mexican': ['mexican'],
+        'chinese': ['chinese'],
+        'american': ['american', 'burgers'],
+        'italian': ['italian', 'pasta'],
+        'thai': ['thai'],
+        'indian': ['indian'],
+        'japanese': ['japanese', 'ramen', 'sushi'],
+        'other': ['african', 'argentine', 'australian',
+                'bakery', 'belgian', 'brazilian', 'burmese', # 'desserts',
+                'drinks', 'ethiopian', 'filipino', 'french', # 'alcohol'
+                'german', 'greek', 'korean', 'vietnamese', 'poke']
+    }
 
-    def get_train_examples(self, data_dir):
-        """See base class."""
-        datafile = os.path.join(data_dir, 'doordash_categorized.pkl')
-        print(datafile)
-        with open(datafile, 'rb') as f:
-            json = pickle.load(f)
-        examples = []
-        for entry in json:
-            guid = entry['key']
-            title = entry['title']
-            label = entry['labels']['category']
-            if label in self.excluded_labels:
-                continue
-            examples.append(
-                InputExample(guid=guid, text_a=title, label=label)
-            )
-        return examples
-
-    def get_test_examples(self, data_dir):
-        return self.get_train_examples(data_dir)
-
-    def get_labels(self):
-        labels = [
-            'african',
-            'american',
-            'asian',
-            'belgian',
-            'british',
-            'burmese',
-            'caribbean',
-            'chinese',
-            'eastern_european',
-            'ethiopian',
-            'european',
-            'filipino',
-            'french',
-            'german',
-            'greek',
-            'indian',
-            'irish',
-            'italian',
-            'japanese',
-            'korean',
-            'latin_american',
-            'mediterranean',
-            'mexican',
-            'middle_eastern',
-            'other',
-            'south_asian',
-            'southern',
-            'spanish',
-            'thai',
-            'vietnamese'
-        ]
-        final_labels = [l for l in labels if l not in self.excluded_labels]
-        return final_labels
-
-
-def load_and_cache_examples(args, task, tokenizer, evaluate=False):
-    if args.local_rank not in [-1, 0] and not evaluate:
-        torch.distributed.barrier()  # Make sure only the first process in distributed training process the dataset, and the others will use the cache
-
-    # processor = processors[task](language=args.language, train_language=args.train_language)
-    processor = DoorDashProcessor(excluded_labels=[])
-    output_mode = "classification"
-    # output_mode = output_modes[task]
-    # Load data features from cache or dataset file
-    cached_features_file = os.path.join(
-        args.data_dir,
-        "cached_{}_{}_{}_{}".format(
-            "test" if evaluate else "train",
-            list(filter(None, args.model_name_or_path.split("/"))).pop(),
-            str(args.max_seq_length),
-            str(task),
-        ),
-    )
-    if os.path.exists(cached_features_file) and not args.overwrite_cache:
-        logger.info("Loading features from cached file %s", cached_features_file)
-        features = torch.load(cached_features_file)
-    else:
-        logger.info("Creating features from dataset file at %s", args.data_dir)
-        label_list = processor.get_labels()
-        examples = (
-            processor.get_test_examples(args.data_dir) if evaluate else processor.get_train_examples(args.data_dir)
-        )
-        features = convert_examples_to_features(
-            examples, tokenizer, max_length=args.max_seq_length, label_list=label_list, output_mode=output_mode,
-        )
-        if args.local_rank in [-1, 0]:
-            logger.info("Saving features into cached file %s", cached_features_file)
-            torch.save(features, cached_features_file)
-
-    if args.local_rank == 0 and not evaluate:
-        torch.distributed.barrier()  # Make sure only the first process in distributed training process the dataset, and the others will use the cache
-
-    # Convert to Tensors and build dataset
-    all_input_ids = torch.tensor([f.input_ids for f in features], dtype=torch.long)
-    all_attention_mask = torch.tensor([f.attention_mask for f in features], dtype=torch.long)
-    if features[0].token_type_ids is not None:
-        all_token_type_ids = torch.tensor([f.token_type_ids for f in features], dtype=torch.long)
-    else:
-        all_token_type_ids = torch.tensor([-1. for f in features], dtype=torch.long)
-        # Pass a dummy value
-    if output_mode == "classification":
-        all_labels = torch.tensor([f.label for f in features], dtype=torch.long)
-    else:
-        raise ValueError("No other `output_mode` for XNLI.")
-
-    dataset = TensorDataset(all_input_ids, all_attention_mask, all_token_type_ids, all_labels)
-    return dataset
+    ds = MultiStreamDataLoader(
+        targets_to_categories, batch_size=800, rootdir=rootdir)
+    return ds
 
 
 def main():
@@ -559,10 +481,18 @@ def main():
     parser.add_argument("--local_rank", type=int, default=-1, help="For distributed training: local_rank")
     parser.add_argument("--server_ip", type=str, default="", help="For distant debugging.")
     parser.add_argument("--server_port", type=str, default="", help="For distant debugging.")
+    parser.add_argument("--writing_dir", type=str, default=None,
+        help="Where to put output_dir and log dir")
+
     args = parser.parse_args()
 
-    args.output_dir = os.path.join(os.getcwd(), 'output_dirs', args.run_name)
-    args.log_dir = os.path.join(os.getcwd(), 'log_dirs', args.run_name)
+    if args.writing_dir:
+        args.output_dir = os.path.join(args.writing_dir, 'output_dirs', args.run_name)
+        args.log_dir = os.path.join(args.writing_dir, 'log_dirs', args.run_name)
+    else:
+        args.output_dir = os.path.join(os.getcwd(), 'output_dirs', args.run_name)
+        args.log_dir = os.path.join(os.getcwd(), 'log_dirs', args.run_name)
+
     if (
         os.path.exists(args.output_dir)
         and os.listdir(args.output_dir)
@@ -615,13 +545,7 @@ def main():
 
     # Prepare XNLI task
     args.task_name = "doordash_classification"
-    # if args.task_name not in processors:
-    #     raise ValueError("Task not found: %s" % (args.task_name))
-    processor = DoorDashProcessor(excluded_labels=[])
-    # processor = processors[args.task_name](language=args.language, train_language=args.train_language)
-    args.output_mode = "classification" # output_modes[args.task_name]
-    label_list = processor.get_labels()
-    num_labels = len(label_list)
+    num_labels = 8
 
     # Load pretrained model and tokenizer
     if args.local_rank not in [-1, 0]:
@@ -645,6 +569,7 @@ def main():
         config=config,
         cache_dir=args.cache_dir,
     )
+    wandb.watch(model)
 
     if args.local_rank == 0:
         torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
@@ -655,7 +580,7 @@ def main():
 
     # Training
     if args.do_train:
-        train_dataset = load_and_cache_examples(args, args.task_name, tokenizer, evaluate=False)
+        train_dataset = get_train_dataset()
         global_step, tr_loss = train(args, train_dataset, model, tokenizer)
         logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
 
@@ -681,6 +606,9 @@ def main():
         model = AutoModelForSequenceClassification.from_pretrained(args.output_dir)
         tokenizer = AutoTokenizer.from_pretrained(args.output_dir)
         model.to(args.device)
+
+    # Wandb saving
+    torch.save(model.state_dict(), os.path.join(wandb.run.dir, 'model.pt'))
 
     # Evaluation
     results = {}
