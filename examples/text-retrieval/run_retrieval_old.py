@@ -46,7 +46,7 @@ from transformers import (
 # from transformers import xnli_output_modes as output_modes
 # from transformers import xnli_processors as processors
 from transformers import InputExample, InputFeatures
-from instacart_preprocessing import MultiStreamDataLoader, IterableTitles
+
 
 try:
     from torch.utils.tensorboard import SummaryWriter
@@ -82,10 +82,8 @@ def train(args, train_dataset, model, tokenizer):
         tb_writer = SummaryWriter(args.log_dir)
 
     args.train_batch_size = args.per_gpu_train_batch_size * max(1, args.n_gpu)
-    # train_sampler = RandomSampler(train_dataset) if args.local_rank == -1 else DistributedSampler(train_dataset)
-    # train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=args.train_batch_size)
-    train_dataset.batch_size = args.train_batch_size
-    train_dataloader = train_dataset
+    train_sampler = RandomSampler(train_dataset) if args.local_rank == -1 else DistributedSampler(train_dataset)
+    train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=args.train_batch_size)
 
     if args.max_steps > 0:
         t_total = args.max_steps
@@ -341,15 +339,98 @@ def evaluate(args, model, tokenizer, prefix=""):
     return results
 
 
-def get_train_dataset(args):
-    rootdir = args.tokenized_root_dir
-    ds = MultiStreamDataLoader(
-        rootdir, 
-        msl_title=args.max_seq_length_title, 
-        msl_cat=args.max_seq_length_category,
-        batch_size=None  # Will be set later in train function
+class DoorDashProcessor():
+    def __init__(self):
+        pass
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        datafile = os.path.join(data_dir, 'doordash_categorized.pkl')
+        print(datafile)
+        with open(datafile, 'rb') as f:
+            json = pickle.load(f)
+        examples_title = []
+        examples_cuisine = []
+        for entry in json:
+            guid = entry['key']
+            title = entry['title']
+            label = entry['labels']['category']
+            if label == 'other':
+                continue
+            examples_title.append(InputExample(guid=guid, text_a=title))
+            examples_cuisine.append(InputExample(guid=guid, text_a=label))
+        return examples_title, examples_cuisine
+
+
+def retrieval_examples_to_features(examples, tokenizer, max_length):
+    batch_encoding = tokenizer.batch_encode_plus(
+        [(example.text_a, example.text_b) for example in examples],
+        max_length=max_length, pad_to_max_length=True,
     )
-    return ds
+
+    features = []
+    for i in range(len(examples)):
+        inputs = {k: batch_encoding[k][i] for k in batch_encoding}
+
+        feature = InputFeatures(**inputs)
+        features.append(feature)
+
+    for i, example in enumerate(examples[:5]):
+        logger.info("*** Example ***")
+        logger.info("guid: %s" % (example.guid))
+        logger.info("features: %s" % features[i])
+
+    return features
+
+
+def load_and_cache_examples(args, task, tokenizer, evaluate=False):
+    if args.local_rank not in [-1, 0] and not evaluate:
+        torch.distributed.barrier()  # Make sure only the first process in distributed training process the dataset, and the others will use the cache
+
+    processor = DoorDashProcessor()
+    # Load data features from cache or dataset file
+    cached_features_file = os.path.join(
+        args.data_dir,
+        "cached_{}_{}_{}_{}_{{}}".format(
+            "test" if evaluate else "train",
+            list(filter(None, args.model_name_or_path.split("/"))).pop(),
+            str(args.max_seq_length),
+            str(task)),
+    )
+    if os.path.exists(cached_features_file.format('title')) and not args.overwrite_cache:
+        logger.info("Loading features from cached file with pattern %s", cached_features_file)
+        features_title = torch.load(cached_features_file.format('title'))
+        features_cuisine = torch.load(cached_features_file.format('cuisine'))
+    else:
+        logger.info("Creating features from dataset file at %s", args.data_dir)
+        examples_title, examples_cuisine = (
+            processor.get_test_examples(args.data_dir) if evaluate else processor.get_train_examples(args.data_dir)
+        )
+        features_title = retrieval_examples_to_features(
+            examples_title, tokenizer, max_length=args.max_seq_length
+        )
+        features_cuisine = retrieval_examples_to_features(
+            examples_cuisine, tokenizer, max_length=args.max_seq_length
+        )
+        if args.local_rank in [-1, 0]:
+            logger.info("Saving features into cached file with pattern %s", cached_features_file)
+            torch.save(features_title, cached_features_file.format('title'))
+            torch.save(features_cuisine, cached_features_file.format('cuisine'))
+
+    if args.local_rank == 0 and not evaluate:
+        torch.distributed.barrier()  # Make sure only the first process in distributed training process the dataset, and the others will use the cache
+
+    # Convert to Tensors and build dataset
+    tensor_dataset_list = []
+    for features in [features_title, features_cuisine]:
+        all_input_ids = torch.tensor([f.input_ids for f in features], dtype=torch.long)
+        all_attention_mask = torch.tensor([f.attention_mask for f in features], dtype=torch.long)
+        all_token_type_ids = torch.tensor([f.token_type_ids for f in features], dtype=torch.long)
+        tensor_dataset_list.extend([all_input_ids, all_attention_mask, all_token_type_ids])
+
+    dataset = TensorDataset(*tensor_dataset_list)
+    return dataset
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -402,30 +483,15 @@ def main():
         help="Pretrained tokenizer name or path if not the same as model_name",
     )
     parser.add_argument(
-        "--tokenized_root_dir",
-        default="",
-        type=str,
-        help="Pretrained tokenizer name or path if not the same as model_name",
-    )
-    parser.add_argument(
         "--cache_dir",
         default=None,
         type=str,
         help="Where do you want to store the pre-trained models downloaded from s3",
     )
     parser.add_argument(
-        "--max_seq_length_title",
+        "--max_seq_length",
         default=128,
         type=int,
-        required=True,
-        help="The maximum total input sequence length after tokenization. Sequences longer "
-        "than this will be truncated, sequences shorter will be padded.",
-    )
-    parser.add_argument(
-        "--max_seq_length_category",
-        default=10,
-        type=int,
-        required=True,
         help="The maximum total input sequence length after tokenization. Sequences longer "
         "than this will be truncated, sequences shorter will be padded.",
     )
@@ -494,17 +560,10 @@ def main():
     parser.add_argument("--local_rank", type=int, default=-1, help="For distributed training: local_rank")
     parser.add_argument("--server_ip", type=str, default="", help="For distant debugging.")
     parser.add_argument("--server_port", type=str, default="", help="For distant debugging.")
-    parser.add_argument("--writing_dir", type=str, default=None,
-        help="Where to put output_dir and log dir")
     args = parser.parse_args()
 
-    if args.writing_dir:
-        args.output_dir = os.path.join(args.writing_dir, 'output_dirs', args.run_name)
-        args.log_dir = os.path.join(args.writing_dir, 'log_dirs', args.run_name)
-        print("Set log_dir to:", args.log_dir)
-    else:
-        args.output_dir = os.path.join(os.getcwd(), 'output_dirs', args.run_name)
-        args.log_dir = os.path.join(os.getcwd(), 'log_dirs', args.run_name)
+    args.output_dir = os.path.join(os.getcwd(), 'output_dirs', args.run_name)
+    args.log_dir = os.path.join(os.getcwd(), 'log_dirs', args.run_name)
 
     if (
         os.path.exists(args.output_dir)
@@ -596,8 +655,7 @@ def main():
     args.task_name = "doordash"
     # Training
     if args.do_train:
-        train_dataset = get_train_dataset(args)
-        # train_dataset = load_and_cache_examples(args, args.task_name, tokenizer, evaluate=False)
+        train_dataset = load_and_cache_examples(args, args.task_name, tokenizer, evaluate=False)
         global_step, tr_loss = train(args, train_dataset, model, tokenizer)
         logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
 
