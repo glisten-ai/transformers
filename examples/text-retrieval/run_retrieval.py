@@ -347,7 +347,8 @@ def get_train_dataset(args):
         rootdir, 
         msl_title=args.max_seq_length_title, 
         msl_cat=args.max_seq_length_category,
-        batch_size=None  # Will be set later in train function
+        batch_size=None,  # Will be set later in train function
+        datasets=args.datasets
     )
     return ds
 
@@ -428,6 +429,13 @@ def main():
         required=True,
         help="The maximum total input sequence length after tokenization. Sequences longer "
         "than this will be truncated, sequences shorter will be padded.",
+    )
+    parser.add_argument(
+        "--datasets",
+        default="",
+        type=str,
+        required=True,
+        help="The datasets to use, comma delimited."
     )
     parser.add_argument("--do_train", action="store_true", help="Whether to run training.")
     parser.add_argument("--do_eval", action="store_true", help="Whether to run eval on the test set.")
@@ -596,6 +604,7 @@ def main():
     args.task_name = "doordash"
     # Training
     if args.do_train:
+        args.datasets = args.datasets.split(",")
         train_dataset = get_train_dataset(args)
         # train_dataset = load_and_cache_examples(args, args.task_name, tokenizer, evaluate=False)
         global_step, tr_loss = train(args, train_dataset, model, tokenizer)

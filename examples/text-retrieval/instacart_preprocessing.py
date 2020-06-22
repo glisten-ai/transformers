@@ -51,7 +51,9 @@ class IterableTitles(torch.utils.data.IterableDataset):
 
 class MultiStreamDataLoader:
 
-    def __init__(self, root_dir, msl_title, msl_cat, batch_size):
+    def __init__(self, 
+                root_dir, msl_title, msl_cat, batch_size,
+                datasets):
         len_filename = 'lens_{}_{}.pkl'.format(msl_title, msl_cat)
         with open(os.path.join(root_dir, len_filename), 'rb') as f:
             len_dict = pickle.load(f)
@@ -60,28 +62,35 @@ class MultiStreamDataLoader:
         self.batch_size = batch_size
         self.total_samples = sum(self.len_dict.values())//2  # title and category => duplicate
         self.dataset_lvl_to_iter = {}
-        for dataset in ['instacart']:
+        self.random_weights = {}
+        for dataset in datasets:
             for key in self.len_dict:
                 if key[0] == dataset and key[1] == 'title-and-desc':
                     level = key[2]
                     dataset_iter = IterableTitles(root_dir, dataset, level, msl_title, msl_cat)
                     self.dataset_lvl_to_iter[(dataset, level)] = iter(DataLoader(dataset_iter, batch_size=None))
+                    self.random_weights[(dataset, level)] = self.len_dict[key]
 
     def __len__(self):
         return self.total_samples//self.batch_size
     
 
     def __iter__(self):
-        dataset_keys = list(self.len_dict.keys())
+        # dataset_keys = list(self.len_dict.keys())
         print(self.dataset_lvl_to_iter.keys())
         while True:
             buffer = []
             labels = []
-            key_choices = random.choices(dataset_keys, weights=list(self.len_dict.values()), k=self.batch_size)
-            for kc in key_choices:
-                key = (kc[0], kc[2])
-                if key[0] == 'google':
-                    continue
+            keys = list(self.dataset_lvl_to_iter.keys())
+            weights = [self.random_weights[k] for k in keys]
+
+            key_choices = random.choices(
+                keys,
+                weights=weights,
+                k=self.batch_size,
+            )
+            # key_choices = random.choices(dataset_keys, weights=list(self.len_dict.values()), k=self.batch_size)
+            for key in key_choices:
                 buffer.extend(
                     [next(self.dataset_lvl_to_iter[key])]
                 )
