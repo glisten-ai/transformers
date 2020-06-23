@@ -227,6 +227,7 @@ def train(args, train_dataset, model, tokenizer):
                     ):  # Only evaluate when single GPU otherwise metrics may not average well
                         results = evaluate(args, model, tokenizer)
                         for key, value in results.items():
+                            # UNUSED NO WANDB
                             tb_writer.add_scalar("eval_{}".format(key), value, global_step)
                     # Evaluation of top-1 accuracy while training
                     emb_a = embeddings_a.detach().cpu().numpy()
@@ -237,7 +238,6 @@ def train(args, train_dataset, model, tokenizer):
                     correct = (top_1 == true_labels).sum()
                     accuracy = correct / len(sims)
                     tb_writer.add_scalar("accuracy", accuracy, global_step)
-
                     tb_writer.add_scalar("lr", scheduler.get_lr()[0], global_step)
                     tb_writer.add_scalar("loss", (tr_loss - logging_loss) / args.logging_steps, global_step)
                     logging_loss = tr_loss
