@@ -1,0 +1,455 @@
+category,subcategory
+waters,natural water
+waters,flavored water
+waters,other waters
+cereal drinks,cereal drinks
+coffees and teas ready to drink,coffee ready
+coffees and teas ready to drink,tea ready
+beers and ciders,beers
+beers and ciders,ciders
+cokteles alcohol,cokteles alcohol
+coolers,coolers
+energy and isotonic,energizing
+energy and isotonic,isotonic
+gaseous,gaseous
+juices and nectars,jugos
+liqueurs and aperitifs,brandies
+liqueurs and aperitifs,bases for cocktails
+liqueurs and aperitifs,brandys
+liqueurs and aperitifs,cachaça
+liqueurs and aperitifs,cognac
+liqueurs and aperitifs,cream liqueur
+liqueurs and aperitifs,fernet
+liqueurs and aperitifs,gins
+liqueurs and aperitifs,liquor
+liqueurs and aperitifs,other spirits
+liqueurs and aperitifs,pisco
+liqueurs and aperitifs,rums
+liqueurs and aperitifs,tequilas
+liqueurs and aperitifs,mezcal
+liqueurs and aperitifs,vodkas
+liqueurs and aperitifs,whiskeys
+powdered soft drinks and syrup,syrup
+powdered soft drinks and syrup,powdered soft drinks
+wines,champagne
+wines,foaming
+wines,other wines
+wines,white wine
+wines,pink wine
+wines,red wine
+cigarettes,cigarettes
+vaporizers and devices,vaporizers and devices
+meats,vegetarian meats
+meats,pork
+meats,other meats
+meats,chicken and poultry
+meats,beef
+delicatessen,mature and smoked meats
+delicatessen,hams
+delicatessen,pates
+delicatessen,salamis and sausages
+cream and derivatives,chantilly
+cream and derivatives,cream
+cream and derivatives,condensed milk
+cream and derivatives,other creams
+fruits and vegetables,fruits
+fruits and vegetables,and aromatic herbs
+fruits and vegetables,"potatoes, yucca and tubers"
+fruits and vegetables,vegetables
+eggs,claras
+eggs,eggs
+milk,milk powder
+milk,natural milk
+milk,vegetable milk
+milk,other milks
+margarines and shortenings,butter
+margarines and shortenings,margarine
+margarines and shortenings,other mantequas
+seafood,shrimps and prawns
+seafood,other seafood
+other frozen foods,other frozen foods
+fresh pasta and pasta,masses
+fresh pasta and pasta,fresh pasta
+fish,other fish
+fish,salmon
+cheese,other cheeses
+cheese,cheeses soft and hard
+cheese,spreadable cheese
+cheese,fromage frais
+cheese,grated cheese
+yogurt and dairy drinks,dairy drinks
+yogurt and dairy drinks,chilled desserts
+yogurt and dairy drinks,yogurt
+salads,salads
+ice cream and desserts,ice creams
+ice cream and desserts,desserts
+otrqs prepared foods,otrqs prepared foods
+pizzas and savory pies,pizzas and savory pies
+ready meals,ready meals
+sandwiches and empanadas,sandwiches and empanadas
+tables chopped,tables chopped
+oils and vinegars,oil
+oils and vinegars,vinegar
+snacks and confectionery,dips
+anchetas,anchetas
+rice grains and pasta,rice
+rice grains and pasta,grain
+rice grains and pasta,pasta
+sugar and sweeteners,sugar
+sugar and sweeteners,sweetener
+"coffee, tea and milk modifiers",coffee
+"coffee, tea and milk modifiers",chocolate
+"coffee, tea and milk modifiers",coffee creamer
+"coffee, tea and milk modifiers",infusions
+"coffee, tea and milk modifiers",math
+"coffee, tea and milk modifiers",modifiers milk
+"coffee, tea and milk modifiers",teas
+broths and soups,broths
+broths and soups,soups and creams
+"cereals, corn flakes and granola",avenas
+"cereals, corn flakes and granola",cereals
+"cereals, corn flakes and granola",granolas
+seasonings,salt
+seasonings,pepper
+seasonings,species
+seasonings,mayonnaise
+seasonings,mustard
+seasonings,soy sauce
+seasonings,ketchup
+seasonings,other sauces
+preserves,canned meat
+preserves,canned foods
+preserves,canned fruits
+preserves,other canned
+preserves,canned fish
+preserves,canned vegetables
+flour and mixtures to prepare,flour
+flour and mixtures to prepare,sweet mixtures
+flour and mixtures to prepare,mixtures salted
+flour and mixtures to prepare,other flours and mixtures
+jams and spreads,caramel
+jams and spreads,jams
+jams and spreads,honey
+jams and spreads,spreads
+bakery,breads
+bakery,arepas
+bakery,sweet bakery
+bakery,cakes and ponques
+cake shop,edible decoration
+cake shop,oils and dyes
+cake shop,jelly
+cake shop,other pastries
+cake shop,baking powder
+cake shop,powdered desserts
+cake shop,sauces and toppings
+cake shop,bakeware
+snacks and confectionery,caramel cookies
+snacks and confectionery,cereal bars and granola
+snacks and confectionery,chocolates
+snacks and confectionery,typical sweets
+snacks and confectionery,nuts and seeds
+snacks and confectionery,cookies
+snacks and confectionery,gumdrops and candy
+snacks and confectionery,popcorn
+snacks and confectionery,savory snacks
+formulas and foods,baby food
+formulas and foods,baby formula
+hygiene and care,colonies
+hygiene and care,"cream, lotion and gel"
+hygiene and care,swabs
+hygiene and care,óleos chalky and cottons
+hygiene and care,other hygiene and care
+hygiene and care,salves and ointments
+hygiene and care,shampoo and soap
+hygiene and care,talc and oil
+breastfeeding and accessories,dressings
+breastfeeding and accessories,pacifiers
+breastfeeding and accessories,breastpump
+breastfeeding and accessories,bottles and teats
+breastfeeding and accessories,teethers
+breastfeeding and accessories,breast and nipple protectors
+breastfeeding and accessories,milk conservative vessels
+diapers and wipes,diapers
+diapers and wipes,wet wipes
+beauty accessories,manicure accessories
+beauty accessories,pedicure accessories
+beauty accessories,"coleros, buckles and diadems"
+beauty accessories,cosmetiqueras
+beauty accessories,mirrors
+beauty accessories,travel kits
+beauty accessories,beauty accessories
+beauty accessories,combs and hairbrushes
+beauty accessories,"tweezers, brushes and profilers"
+skin care,oils and creams
+skin care,anti acne care
+skin care,exfoliants
+skin care,other skin care
+skin care,solar protection
+skin care,repellents
+foot care,accessories
+foot care,antifungals
+foot care,"calluses, blisters and bunions"
+foot care,deodorants and talcum
+foot care,other foot care
+foot care,templates
+hair care,conditioner
+hair care,coloration
+hair care,modeling and styling
+hair care,other hair care
+hair care,repair and treatment
+hair care,shampoo
+oral care,tooth-brushes
+oral care,toothpaste
+oral care,mouthwash
+oral care,dental kit
+oral care,other oral care
+oral care,silk / flossing
+waxing and shaving,"creams, waxes and bands"
+waxing and shaving,preparation and shaved
+hair care,capillary dermocosmético
+skin care,dermocosmético body
+makeup,dermocosmético makeup
+makeup,dermocosmético face
+skin care,solar dermocosmético
+deodorants,deodorants
+electro beauty,shavers
+electro beauty,other beauty electro
+electro beauty,reocortadoras hair
+electro beauty,dryers and irons
+fragrances,fragrances
+cleaning soaps and,soaps
+cleaning soaps and,towelettes
+makeup,removers and biphasic
+makeup,lip makeup
+makeup,eyes makeup
+makeup,face makeup
+makeup,makeup nails
+feminine protection,menstrual cups
+feminine protection,tampons
+feminine protection,sanitary towels
+allergies,antiallergic derma
+allergies,nasal antiallergic
+allergies,ocular antiallergic
+allergies,oral antiallergic
+allergies,other alegrias
+pain relief,systemic analgesics
+pain relief,topical analgesics
+pain relief,other pain relief
+pain relief,antispasmodic preparations ibs e
+and first aid kit,peroxide
+and first aid kit,alcohol
+and first aid kit,cotton
+and first aid kit,antiseptics
+and first aid kit,antibacterial gel
+and first aid kit,"syringes, gloves and hospital equipment"
+and first aid kit,other aid kit and first aid
+dermatological care,topical antimycotic
+dermatological care,other dermatological care
+dermatological care,dermal protectors
+dermatological care,keratolytic
+dermatological care,treatment of alopecia
+dermatological care,treatment of scars and wounds
+dermatological care,treatment of psoriasis
+medical equipment and supplies,therapeutic socks
+medical equipment and supplies,medical equipments
+medical equipment and supplies,products for rehabilitation
+flu and cough,decongestants
+flu and cough,sore throat
+flu and cough,other flu and cough
+flu and cough,respiratory preparations
+flu and cough,cold
+flu and cough,cough
+other drugs,other drugs
+natural products,natural products
+incontinence protection,anatomic calzones
+incontinence protection,other incontinence protection
+incontinence protection,pre-bent
+incontinence protection,underwear
+incontinence protection,wet toals
+incontinence protection,protective towels
+digestive health,antacids
+digestive health,antidiarrheal
+digestive health,anti-pollution
+digestive health,antinausea
+digestive health,antiparasitic
+digestive health,laxatives
+digestive health,other digestive remedies
+digestive health,probiotic
+digestive health,digestive remedies
+digestive health,serum
+nutritional health,sport nutrition
+nutritional health,food supplements
+sexual health,sexual accessories
+sexual health,contraceptives
+sexual health,lubricants
+sexual health,other sexual health
+sexual health,ovules and vaginal creams
+sexual health,preservatives
+sexual health,pregnancy test
+eyecare,reading glasses
+eyecare,sunglasses
+eyecare,"drops, lubricants and tears"
+eyecare,other eyecare
+eyecare,lens solution
+vitamins and minerals,multivitamins
+vitamins and minerals,vitamins
+fresheners and candles,desiccants
+fresheners and candles,fresheners
+fresheners and candles,disinfectants environment
+fresheners and candles,aroma diffusers
+fresheners and candles,other fresheners
+fresheners and candles,candles
+paper goods,other paper
+paper goods,tissues
+paper goods,toilet paper
+paper goods,napkins
+paper goods,kitchen towels
+pest control,insecticides
+pest control,you rodenticides
+pest control,trampas
+clothing care,laundry bags
+clothing care,detergents
+clothing care,fragrances clothing
+clothing care,clothespins
+clothing care,other clothing care
+clothing care,pre ironed
+clothing care,remove stain
+clothing care,softeners
+clothing care,dye for clothes
+shoes care,brushes and other
+shoes care,wax
+shoes care,soap shoes
+shoes care,outros care shoes
+dishwashing detergent,dishwashing detergent
+cleaning,waxes and retauradores
+cleaning,glass cleaner
+cleaning,multipurpose cleaners
+cleaning,other cleaners
+cleaning,multipurpose cloths
+cleaning,detergent dinnerware
+cleaning,cookware toilet
+disposables,disposable tableware
+disposables,foil
+disposables,clingfilm
+disposables,waxed paper
+disposables,baking bags
+disposables,trash bags
+disposables,other disposable
+"coffee, chocolates and teas",coffee filters
+pet accessories,collars and leashes
+pet accessories,food and water bowls
+pet accessories,travel tools
+pet accessories,pet toys
+pet accessories,other pet accessories
+pet accessories,scrapers and gyms
+pet food,cat food
+pet food,food for other pets
+pet food,dog food
+pet grooming,sand for cats
+pet grooming,other pet toilets
+pet grooming,pet shampoo and talc
+medicines,pet medications
+accessories for babies,power accessories
+accessories for babies,hygiene and bath accessories
+accessories for babies,walkers and rocking chairs
+accessories for babies,blankets and white
+accessories for babies,other baby accessories
+accessories for babies,glasses and cutlery
+cars and highchairs,taxis car baby
+cars and highchairs,other cars and chairs
+cars and highchairs,dining chairs
+games,fresh air
+games,infants and toddlers
+games,table games
+games,toys
+games,other toys
+child safety,railings
+child safety,monitors
+child safety,ipad insurance
+vehicle accessories,vehicle accessories
+battery,battery
+"liquids, additives and oils","liquids, additives and oils"
+tires and wheels,tires and wheels
+cleaning products,cleaning products
+baby accessories,baby accessories
+accessories men,accessories men
+woman's accesories,woman's accesories
+children accessories,children accessories
+unisex accessories,unisex accessories
+baby shoes,baby shoes
+men,men
+women's shoes,women's shoes
+kids' shoes,kids' shoes
+unisex shoes,unisex shoes
+baby clothes,baby clothes
+men clothes,men clothes
+woman cloth,woman cloth
+clothing,clothing
+unisex clothing,unisex clothing
+sports articles,sports articles
+camping and outdoor,camping and outdoor
+cycling,cycling
+fitness,fitness
+exercise machines,exercise machines
+audiobooks,audiobooks
+paper books,paper books
+e-books,e-books
+periodicos,periodicos
+journals,journals
+school textbooks,school textbooks
+dj consoles,dj consoles
+strings,strings
+percussion,percussion
+keyboards,keyboards
+winds,winds
+bathrooms,bathrooms
+pub,pub
+kitchen,kitchen
+home decor,home decor
+bedroom,bedroom
+home appliances,home appliances
+bags and travel accessories,bags and travel accessories
+furniture,furniture
+organizers,organizers
+fresh air,fresh air
+"coal, wood and spark","coal, wood and spark"
+hardware store,hardware store
+lighting and electrical,lighting and electrical
+gardening,gardening
+party decorations,party decorations
+costumes,costumes
+packings,packings
+christmas,christmas
+other seasons,other seasons
+details and accessories,details and accessories
+fresh flowers and plants,fresh flowers and plants
+print,print
+notepads and notes,notepads and notes
+canvases and pallets,canvases and pallets
+office supplies,office supplies
+electronic supplies,electronic supplies
+cards,cards
+school supplies,school supplies
+souvenirs,souvenirs
+audio & sound,audio & sound
+cameras,cameras
+computers,computers
+consoles,consoles
+storage devices,storage devices
+phones & telecoms,phones & telecoms
+television and video,television and video
+lessons,lessons
+sports,sports
+doorstep cash,doorstep cash
+car wash,car wash
+laundry,laundry
+maintenance,maintenance
+massages,massages
+mobility,mobility
+hairdressing,hairdressing
+please rappi,please rappi
+prime rappi,prime rappi
+you refills,you refills
+repair cell,repair cell
+insurance,insurance
+subscription,subscription

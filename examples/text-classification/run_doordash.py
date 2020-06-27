@@ -337,25 +337,33 @@ def evaluate(args, model, tokenizer, prefix=""):
     return results
 
 
-def get_train_dataset():
-    rootdir = '/home/doordash-by-category/cleaned-tokenized/bert-base-multilingual-cased/'
+def get_train_dataset(args):
+    rootdir = args.tokenized_root_dir  # the directory containing all tokenized arrays
     with open(os.path.join(rootdir, 'lens.pkl'), 'rb') as f:
         len_dict = pickle.load(f)
+    # targets_to_categories = {
+    #     # Label to list of filenames corresponding to that label
+    #     'mexican': ['mexican'],
+    #     'chinese': ['chinese'],
+    #     'american': ['american', 'burgers'],
+    #     'italian': ['italian', 'pasta'],
+    #     'thai': ['thai'],
+    #     'indian': ['indian'],
+    #     'japanese': ['japanese', 'ramen', 'sushi'],
+    #     'other': ['african', 'argentine', 'australian',
+    #             'bakery', 'belgian', 'brazilian', 'burmese', # 'desserts',
+    #             'drinks', 'ethiopian', 'filipino', 'french', # 'alcohol'
+    #             'german', 'greek', 'korean', 'vietnamese', 'poke']
+    # }
     targets_to_categories = {
-        # Label to list of filenames corresponding to that label
-        'mexican': ['mexican'],
-        'chinese': ['chinese'],
-        'american': ['american', 'burgers'],
-        'italian': ['italian', 'pasta'],
-        'thai': ['thai'],
-        'indian': ['indian'],
-        'japanese': ['japanese', 'ramen', 'sushi'],
-        'other': ['african', 'argentine', 'australian',
-                'bakery', 'belgian', 'brazilian', 'burmese', # 'desserts',
-                'drinks', 'ethiopian', 'filipino', 'french', # 'alcohol'
-                'german', 'greek', 'korean', 'vietnamese', 'poke']
+        'burger': ['burger'],
+        'other': ['other'],
+        'pizza': ['pizza'],
+        'salad': ['salad'],
+        'sandwich': ['sandwich'],
+        'soup': ['soup'],
+        'sushi': ['sushi']
     }
-
     ds = MultiStreamDataLoader(
         targets_to_categories, batch_size=800, rootdir=rootdir)
     return ds
@@ -402,6 +410,12 @@ def main():
         default="",
         type=str,
         help="Pretrained tokenizer name or path if not the same as model_name",
+    )
+    parser.add_argument(
+        "--tokenized_root_dir",
+        default="",
+        type=str,
+        required=True,
     )
     parser.add_argument(
         "--cache_dir",
@@ -581,7 +595,7 @@ def main():
 
     # Training
     if args.do_train:
-        train_dataset = get_train_dataset()
+        train_dataset = get_train_dataset(args)
         global_step, tr_loss = train(args, train_dataset, model, tokenizer)
         logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
 
