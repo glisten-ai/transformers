@@ -637,9 +637,8 @@ def main():
     #})
 
     print(args.dataset) 
-    #artifact = run.use_artifact('glisten/transformers/tokenized-doordash:v3', type='dataset')
-    #rootdir = artifact.download()
-    rootdir = '/home/sarahwooders_gmail_com/.cache/wandb/artifacts/final/dataset/d13ad420efe0a5e7bace3af2e466c787/artifact'
+    artifact = run.use_artifact('glisten/transformers/tokenized-doordash:v5', type='dataset')
+    rootdir = artifact.download()
 
     args.task_name = "doordash"
     # Training
