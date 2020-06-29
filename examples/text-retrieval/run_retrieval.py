@@ -53,6 +53,7 @@ try:
 except ImportError:
     from tensorboardX import SummaryWriter
 
+import wandb
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +67,7 @@ logger = logging.getLogger(__name__)
 #     # "xlm": (XLMConfig, XLMForSequenceClassification, XLMTokenizer),
 #     # "distilbert": (DistilBertConfig, DistilBertForSequenceClassification, DistilBertTokenizer),
 # }
+
 
 
 def set_seed(args):
@@ -229,6 +231,7 @@ def train(args, train_dataset, model, tokenizer):
                         for key, value in results.items():
                             # UNUSED NO WANDB
                             tb_writer.add_scalar("eval_{}".format(key), value, global_step)
+                            wandb.log({"eval_{}".format(key): value}, step=global_step)
                     # Evaluation of top-1 accuracy while training
                     emb_a = embeddings_a.detach().cpu().numpy()
                     emb_b = embeddings_b.detach().cpu().numpy()
@@ -240,6 +243,13 @@ def train(args, train_dataset, model, tokenizer):
                     tb_writer.add_scalar("accuracy", accuracy, global_step)
                     tb_writer.add_scalar("lr", scheduler.get_lr()[0], global_step)
                     tb_writer.add_scalar("loss", (tr_loss - logging_loss) / args.logging_steps, global_step)
+                    
+                    wandb.log({
+                        "accuracy": accuracy, 
+                        "lr": scheduler.get_lr()[0], 
+                        "loss": (tr_loss - logging_loss) / args.logging_steps
+                    }, step=global_step)
+
                     logging_loss = tr_loss
 
                 if args.local_rank in [-1, 0] and args.save_steps > 0 and global_step % args.save_steps == 0:
@@ -259,6 +269,9 @@ def train(args, train_dataset, model, tokenizer):
                     torch.save(optimizer.state_dict(), os.path.join(output_dir, "optimizer.pt"))
                     torch.save(scheduler.state_dict(), os.path.join(output_dir, "scheduler.pt"))
                     logger.info("Saving optimizer and scheduler states to %s", output_dir)
+
+                    # Save and upload to W&B
+                    wandb.save(os.path.join(output_dir, "*"))
 
             if args.max_steps > 0 and global_step > args.max_steps:
                 epoch_iterator.close()
@@ -324,6 +337,7 @@ def evaluate(args, model, tokenizer, prefix=""):
                 out_label_ids = np.append(out_label_ids, inputs["labels"].detach().cpu().numpy(), axis=0)
 
         eval_loss = eval_loss / nb_eval_steps
+        wandb.log({"val_loss": eval_loss})
         if args.output_mode == "classification":
             preds = np.argmax(preds, axis=1)
         else:
@@ -335,20 +349,23 @@ def evaluate(args, model, tokenizer, prefix=""):
         with open(output_eval_file, "w") as writer:
             logger.info("***** Eval results {} *****".format(prefix))
             for key in sorted(result.keys()):
+
                 logger.info("  %s = %s", key, str(result[key]))
                 writer.write("%s = %s\n" % (key, str(result[key])))
 
     return results
 
 
-def get_train_dataset(args):
-    rootdir = args.tokenized_root_dir
+def get_train_dataset(args, rootdir):
+
+        #rootdir = args.tokenized_root_dir
     ds = MultiStreamDataLoader(
         rootdir, 
         msl_title=args.max_seq_length_title, 
         msl_cat=args.max_seq_length_category,
         batch_size=None,  # Will be set later in train function
-        datasets=args.datasets
+        datasets=[args.dataset]
+        #datasets=args.datasets
     )
     return ds
 
@@ -436,6 +453,13 @@ def main():
         type=str,
         required=True,
         help="The datasets to use, comma delimited."
+    )
+    parser.add_argument(
+        "--dataset",
+        default="",
+        type=str,
+        required=True,
+        help="The datasets to use from W&B."
     )
     parser.add_argument("--do_train", action="store_true", help="Whether to run training.")
     parser.add_argument("--do_eval", action="store_true", help="Whether to run eval on the test set.")
@@ -601,14 +625,30 @@ def main():
 
     logger.info("Training/evaluation parameters %s", args)
 
+    print("INIT WANDB")
+    print(args.logging_steps)
+    run = wandb.init(project="transformers")
+
+    #wandb.config.update({
+    #    "train_batch_size": args.train_batch_size,
+    #    "num_examples": len(train_dataset),
+    #    "epochs": args.num_train_epochs,
+    #    "steps": t_total
+    #})
+
+    print(args.dataset) 
+    artifact = run.use_artifact('glisten/transformers/tokenized-doordash:v5', type='dataset')
+    rootdir = artifact.download()
+
     args.task_name = "doordash"
     # Training
     if args.do_train:
         args.datasets = args.datasets.split(",")
-        train_dataset = get_train_dataset(args)
+        train_dataset = get_train_dataset(args, rootdir)
         # train_dataset = load_and_cache_examples(args, args.task_name, tokenizer, evaluate=False)
         global_step, tr_loss = train(args, train_dataset, model, tokenizer)
         logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
+        wandb.log({"global_step": global_step, "train_loss": tr_loss})
 
     # Saving best-practices: if you use defaults names for the model, you can reload it using from_pretrained()
     if args.do_train and (args.local_rank == -1 or torch.distributed.get_rank() == 0):

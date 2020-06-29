@@ -53,7 +53,11 @@ except ImportError:
     from tensorboardX import SummaryWriter
 
 import wandb
-wandb.init(project="glisten-doordash")
+run = wandb.init(project="bert-classification")
+#artifact = run.use_artifact('glisten/bert-classification/doordash:v1', type='dataset')
+#rootdir = artifact.download()
+
+
 
 
 logger = logging.getLogger(__name__)
@@ -136,6 +140,12 @@ def train(args, train_dataset, model, tokenizer):
     )
     logger.info("  Gradient Accumulation steps = %d", args.gradient_accumulation_steps)
     logger.info("  Total optimization steps = %d", t_total)
+
+    wandb.config.update({
+        'num_examples': len(train_dataset),
+        "num_epochs": args.num_train_epochs,
+        "batch_size": args.per_gpu_train_batch_size
+    })
 
     global_step = 0
     epochs_trained = 0
@@ -337,33 +347,34 @@ def evaluate(args, model, tokenizer, prefix=""):
     return results
 
 
-def get_train_dataset(args):
-    rootdir = args.tokenized_root_dir  # the directory containing all tokenized arrays
+def get_train_dataset(args, rootdir):
+    #rootdir = args.tokenized_root_dir  # the directory containing all tokenized arrays
     with open(os.path.join(rootdir, 'lens.pkl'), 'rb') as f:
         len_dict = pickle.load(f)
-    # targets_to_categories = {
-    #     # Label to list of filenames corresponding to that label
-    #     'mexican': ['mexican'],
-    #     'chinese': ['chinese'],
-    #     'american': ['american', 'burgers'],
-    #     'italian': ['italian', 'pasta'],
-    #     'thai': ['thai'],
-    #     'indian': ['indian'],
-    #     'japanese': ['japanese', 'ramen', 'sushi'],
-    #     'other': ['african', 'argentine', 'australian',
-    #             'bakery', 'belgian', 'brazilian', 'burmese', # 'desserts',
-    #             'drinks', 'ethiopian', 'filipino', 'french', # 'alcohol'
-    #             'german', 'greek', 'korean', 'vietnamese', 'poke']
-    # }
     targets_to_categories = {
-        'burger': ['burger'],
-        'other': ['other'],
-        'pizza': ['pizza'],
-        'salad': ['salad'],
-        'sandwich': ['sandwich'],
-        'soup': ['soup'],
-        'sushi': ['sushi']
-    }
+         # Label to list of filenames corresponding to that label
+         'mexican': ['mexican'],
+         'chinese': ['chinese'],
+         'american': ['american', 'burgers'],
+         'italian': ['italian', 'pasta'],
+         'thai': ['thai'],
+         'indian': ['indian'],
+         'japanese': ['japanese', 'ramen', 'sushi'],
+         'other': ['african', 'argentine', 'australian',
+                 'bakery', 'belgian', 'brazilian', 'burmese', # 'desserts',
+                 'drinks', 'ethiopian', 'filipino', 'french', # 'alcohol'
+                 'german', 'greek', 'korean', 'vietnamese', 'poke']
+     }
+    wandb.config.update({'labels': targets_to_categories})
+    #targets_to_categories = {
+    #    'burger': ['burger'],
+    #    'other': ['other'],
+    #    'pizza': ['pizza'],
+    #    'salad': ['salad'],
+    #    'sandwich': ['sandwich'],
+    #    'soup': ['soup'],
+    #    'sushi': ['sushi']
+    #}
     ds = MultiStreamDataLoader(
         targets_to_categories, batch_size=800, rootdir=rootdir)
     return ds
@@ -528,6 +539,7 @@ def main():
         ptvsd.enable_attach(address=(args.server_ip, args.server_port), redirect_output=True)
         ptvsd.wait_for_attach()
 
+    print('DEVICE', torch.device("cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu")) 
     # Setup CUDA, GPU & distributed training
     if args.local_rank == -1 or args.no_cuda:
         device = torch.device("cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu")
@@ -592,9 +604,13 @@ def main():
 
     logger.info("Training/evaluation parameters %s", args)
 
+    #rootdir = '/home/sarahwooders_gmail_com/.cache/wandb/artifacts/final/dataset/864bac0c35a47e10b0be48b3fc609aa2/artifact' 
+    rootdir = '/home/sarahwooders_gmail_com/.cache/wandb/artifacts/final/dataset/864bac0c35a47e10b0be48b3fc609aa2/artifact'
+    #rootdir = args.tokenized_root_dir  # the directory containing all tokenized arrays
+
     # Training
     if args.do_train:
-        train_dataset = get_train_dataset(args)
+        train_dataset = get_train_dataset(args, rootdir)
         global_step, tr_loss = train(args, train_dataset, model, tokenizer)
         logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
 
