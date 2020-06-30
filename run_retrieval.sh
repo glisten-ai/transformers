@@ -4,7 +4,7 @@ wandb init;
 python examples/text-retrieval/run_retrieval.py \
   --data_dir="/home/transformers-public/data_dir/" \
   --model_name_or_path="bert-base-multilingual-cased" \
-  --run_name="sarah_test2" \
+  --run_name="sarah_test3" \
   --max_seq_length_title=128 \
   --max_seq_length_category=10 \
   --datasets="google,google-rappi" \
