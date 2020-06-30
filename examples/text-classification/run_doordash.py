@@ -351,20 +351,25 @@ def get_train_dataset(args, rootdir):
     #rootdir = args.tokenized_root_dir  # the directory containing all tokenized arrays
     with open(os.path.join(rootdir, 'lens.pkl'), 'rb') as f:
         len_dict = pickle.load(f)
+
     targets_to_categories = {
-         # Label to list of filenames corresponding to that label
-         'mexican': ['mexican'],
-         'chinese': ['chinese'],
-         'american': ['american', 'burgers'],
-         'italian': ['italian', 'pasta'],
-         'thai': ['thai'],
-         'indian': ['indian'],
-         'japanese': ['japanese', 'ramen', 'sushi'],
-         'other': ['african', 'argentine', 'australian',
-                 'bakery', 'belgian', 'brazilian', 'burmese', # 'desserts',
-                 'drinks', 'ethiopian', 'filipino', 'french', # 'alcohol'
-                 'german', 'greek', 'korean', 'vietnamese', 'poke']
-     }
+        "healthy": ["healthy"],
+        "unhealthy": ["unhealthy"]
+    }
+    #targets_to_categories = {
+    #     # Label to list of filenames corresponding to that label
+    #     'mexican': ['mexican'],
+    #     'chinese': ['chinese'],
+    #     'american': ['american', 'burgers'],
+    #     'italian': ['italian', 'pasta'],
+    #     'thai': ['thai'],
+    #     'indian': ['indian'],
+    #     'japanese': ['japanese', 'ramen', 'sushi'],
+    #     'other': ['african', 'argentine', 'australian',
+    #             'bakery', 'belgian', 'brazilian', 'burmese', # 'desserts',
+    #             'drinks', 'ethiopian', 'filipino', 'french', # 'alcohol'
+    #             'german', 'greek', 'korean', 'vietnamese', 'poke']
+    # }
     wandb.config.update({'labels': targets_to_categories})
     #targets_to_categories = {
     #    'burger': ['burger'],
@@ -605,7 +610,8 @@ def main():
     logger.info("Training/evaluation parameters %s", args)
 
     #rootdir = '/home/sarahwooders_gmail_com/.cache/wandb/artifacts/final/dataset/864bac0c35a47e10b0be48b3fc609aa2/artifact' 
-    rootdir = '/home/sarahwooders_gmail_com/.cache/wandb/artifacts/final/dataset/864bac0c35a47e10b0be48b3fc609aa2/artifact'
+    #rootdir = '/home/sarahwooders_gmail_com/.cache/wandb/artifacts/final/dataset/864bac0c35a47e10b0be48b3fc609aa2/artifact'
+    rootdir = '/home/sarahwooders_gmail_com/transformers/doordash-tmp'
     #rootdir = args.tokenized_root_dir  # the directory containing all tokenized arrays
 
     # Training

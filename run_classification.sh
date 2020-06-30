@@ -1,10 +1,10 @@
-wandb init;
+#wandb init;
 
 # Run training
 python examples/text-classification/run_doordash.py \
   --data_dir="/home/transformers-public/data_dir/" \
   --model_name_or_path="bert-base-multilingual-cased" \
-  --run_name="sarah-test" \
+  --run_name="sarah-test4" \
   --max_seq_length=64 \
   --per_gpu_train_batch_size=32 \
   --do_train \
