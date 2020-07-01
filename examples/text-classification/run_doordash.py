@@ -352,10 +352,24 @@ def get_train_dataset(args, rootdir):
     with open(os.path.join(rootdir, 'lens.pkl'), 'rb') as f:
         len_dict = pickle.load(f)
 
+    print('LENS', len_dict)
+    print(rootdir)
+
     targets_to_categories = {
-        "healthy": ["healthy"],
-        "unhealthy": ["unhealthy"]
+        'healthy': ['healthy', 'vegetarian', 'salad', 'vegan'],
+        'unhealthy': [    
+            "desserts", 
+            "fondue",
+            "alcohol",
+            #"barbecue",
+            "bakery",
+            "bubble-tea",
+            "comfort-food",
+            "fast-food",
+            "southern"
+        ]
     }
+
     #targets_to_categories = {
     #     # Label to list of filenames corresponding to that label
     #     'mexican': ['mexican'],
@@ -576,7 +590,7 @@ def main():
 
     # Prepare XNLI task
     args.task_name = "doordash_classification"
-    num_labels = 8
+    num_labels = 2
 
     # Load pretrained model and tokenizer
     if args.local_rank not in [-1, 0]:
@@ -611,7 +625,7 @@ def main():
 
     #rootdir = '/home/sarahwooders_gmail_com/.cache/wandb/artifacts/final/dataset/864bac0c35a47e10b0be48b3fc609aa2/artifact' 
     #rootdir = '/home/sarahwooders_gmail_com/.cache/wandb/artifacts/final/dataset/864bac0c35a47e10b0be48b3fc609aa2/artifact'
-    rootdir = '/home/sarahwooders_gmail_com/transformers/doordash-tmp'
+    rootdir = "/home/doordash-by-dish-no-and/title-tokenized/bert-base-multilingual-cased"
     #rootdir = args.tokenized_root_dir  # the directory containing all tokenized arrays
 
     # Training
