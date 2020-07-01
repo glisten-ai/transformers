@@ -8,20 +8,22 @@ import pickle
 import os
 
 class IterableTitles(torch.utils.data.IterableDataset):
-    def __init__(self, root_dir, dataset, level, msl_title, msl_cat):
+    def __init__(self, root_dir, dataset, level, msl_title, msl_cat, index):
         super(IterableTitles).__init__()
-        file_pattern = "{dataset}_{{split}}_{level}_{msl_title}_{msl_cat}_{{input_key}}"
+        #file_pattern = "{dataset}_{{split}}_{level}_{msl_title}_{msl_cat}_{{input_key}}"
+        file_pattern = "{dataset}_{{split}}_{level}_{msl_title}_{msl_cat}_{{input_key}}_{index}"
         self.datafile_pattern = os.path.join(
             root_dir,
-            file_pattern.format(dataset=dataset, level=level, msl_title=msl_title, msl_cat=msl_cat))
+            file_pattern.format(dataset=dataset, level=level, msl_title=msl_title, msl_cat=msl_cat, index=index))
         len_filename = 'lens_{}_{}.pkl'.format(msl_title, msl_cat)
         with open(os.path.join(root_dir, len_filename), 'rb') as f:
             len_dict = pickle.load(f)
         self.len_dict = len_dict
-        assert self.len_dict[(dataset, 'title-and-desc', level)][0] == self.len_dict[(dataset, 'category', level)][0]
-        self.length = self.len_dict[(dataset, 'title-and-desc', level)][0]
+        assert self.len_dict[(dataset, 'title-and-desc', level, index)][0] == self.len_dict[(dataset, 'category', level, index)][0]
+        self.length = self.len_dict[(dataset, 'title-and-desc', level, index)][0]
         self.dataset = dataset
         self.level = level
+        self.index = index
 
     def __len__(self):
         return self.length
@@ -35,7 +37,7 @@ class IterableTitles(torch.utils.data.IterableDataset):
                 datafile = self.datafile_pattern.format(split=split, input_key=input_key)
                 fp = np.memmap(
                     datafile, dtype='int64', mode='r+',
-                    shape=self.len_dict[(self.dataset, split, self.level)])
+                    shape=self.len_dict[(self.dataset, split, self.level, self.index)])
                 split_input_key_to_memmap[(split, input_key)] = fp
         while True:
             i = random.choice(range(self.length))
@@ -65,11 +67,12 @@ class MultiStreamDataLoader:
         self.random_weights = {}
         for dataset in datasets:
             for key in self.len_dict:
-                if key[0] == dataset and key[1] == 'title-and-desc':
-                    level = key[2]
-                    dataset_iter = IterableTitles(root_dir, dataset, level, msl_title, msl_cat)
-                    self.dataset_lvl_to_iter[(dataset, level)] = iter(DataLoader(dataset_iter, batch_size=None))
-                    self.random_weights[(dataset, level)] = self.len_dict[key]
+                for index in range(0, 15400000, 100000):
+                    if key[0] == dataset and key[1] == 'title-and-desc':
+                        level = key[2]
+                        dataset_iter = IterableTitles(root_dir, dataset, level, msl_title, msl_cat, index)
+                        self.dataset_lvl_to_iter[(dataset, level, index)] = iter(DataLoader(dataset_iter, batch_size=None))
+                        self.random_weights[(dataset, level, index)] = self.len_dict[key]
 
     def __len__(self):
         return self.total_samples//self.batch_size

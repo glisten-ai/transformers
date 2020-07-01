@@ -351,20 +351,39 @@ def get_train_dataset(args, rootdir):
     #rootdir = args.tokenized_root_dir  # the directory containing all tokenized arrays
     with open(os.path.join(rootdir, 'lens.pkl'), 'rb') as f:
         len_dict = pickle.load(f)
+
+    print('LENS', len_dict)
+    print(rootdir)
+
     targets_to_categories = {
-         # Label to list of filenames corresponding to that label
-         'mexican': ['mexican'],
-         'chinese': ['chinese'],
-         'american': ['american', 'burgers'],
-         'italian': ['italian', 'pasta'],
-         'thai': ['thai'],
-         'indian': ['indian'],
-         'japanese': ['japanese', 'ramen', 'sushi'],
-         'other': ['african', 'argentine', 'australian',
-                 'bakery', 'belgian', 'brazilian', 'burmese', # 'desserts',
-                 'drinks', 'ethiopian', 'filipino', 'french', # 'alcohol'
-                 'german', 'greek', 'korean', 'vietnamese', 'poke']
-     }
+        'healthy': ['healthy', 'vegetarian', 'salad', 'vegan'],
+        'unhealthy': [    
+            "desserts", 
+            "fondue",
+            "alcohol",
+            #"barbecue",
+            "bakery",
+            "bubble-tea",
+            "comfort-food",
+            "fast-food",
+            "southern"
+        ]
+    }
+
+    #targets_to_categories = {
+    #     # Label to list of filenames corresponding to that label
+    #     'mexican': ['mexican'],
+    #     'chinese': ['chinese'],
+    #     'american': ['american', 'burgers'],
+    #     'italian': ['italian', 'pasta'],
+    #     'thai': ['thai'],
+    #     'indian': ['indian'],
+    #     'japanese': ['japanese', 'ramen', 'sushi'],
+    #     'other': ['african', 'argentine', 'australian',
+    #             'bakery', 'belgian', 'brazilian', 'burmese', # 'desserts',
+    #             'drinks', 'ethiopian', 'filipino', 'french', # 'alcohol'
+    #             'german', 'greek', 'korean', 'vietnamese', 'poke']
+    # }
     wandb.config.update({'labels': targets_to_categories})
     #targets_to_categories = {
     #    'burger': ['burger'],
@@ -571,7 +590,7 @@ def main():
 
     # Prepare XNLI task
     args.task_name = "doordash_classification"
-    num_labels = 8
+    num_labels = 2
 
     # Load pretrained model and tokenizer
     if args.local_rank not in [-1, 0]:
@@ -605,7 +624,8 @@ def main():
     logger.info("Training/evaluation parameters %s", args)
 
     #rootdir = '/home/sarahwooders_gmail_com/.cache/wandb/artifacts/final/dataset/864bac0c35a47e10b0be48b3fc609aa2/artifact' 
-    rootdir = '/home/sarahwooders_gmail_com/.cache/wandb/artifacts/final/dataset/864bac0c35a47e10b0be48b3fc609aa2/artifact'
+    #rootdir = '/home/sarahwooders_gmail_com/.cache/wandb/artifacts/final/dataset/864bac0c35a47e10b0be48b3fc609aa2/artifact'
+    rootdir = "/home/doordash-by-dish-no-and/title-tokenized/bert-base-multilingual-cased"
     #rootdir = args.tokenized_root_dir  # the directory containing all tokenized arrays
 
     # Training

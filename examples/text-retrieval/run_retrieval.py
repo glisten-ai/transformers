@@ -637,7 +637,7 @@ def main():
     #})
 
     print(args.dataset) 
-    artifact = run.use_artifact('glisten/transformers/tokenized-doordash:v5', type='dataset')
+    artifact = run.use_artifact('glisten/transformers/tokenized-doordash:v9', type='dataset')
     rootdir = artifact.download()
 
     args.task_name = "doordash"
